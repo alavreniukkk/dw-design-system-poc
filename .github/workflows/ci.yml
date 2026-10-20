@@ -5,18 +5,27 @@ on:
   pull_request:
 
 jobs:
-  test:
+  jest:
+    name: Jest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: npm run tokens
-      - run: npm run build -w @dw/ui
+      - uses: $/.github/actions/setup
       - run: npm run test:coverage -w @dw/ui
+
+  a11y:
+    name: a11y
+    runs-on: ubuntu-latest
+    steps:
+      - uses: $/.github/actions/setup
+        with:
+          playwright: "true"
       - run: npm run test:a11y -w @dw/ui
+
+  compare-layout-styles:
+    name: compare-layout-styles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: $/.github/actions/setup
+        with:
+          playwright: "true"
       - run: npm run compare-layout-styles

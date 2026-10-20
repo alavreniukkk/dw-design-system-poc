@@ -1,0 +1,26 @@
+name: Setup
+description: Checkout, install dependencies, generate tokens, and build @dw/ui
+
+inputs:
+  playwright:
+    description: Install Playwright Chromium when true
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: npm
+    - run: npm ci
+      shell: bash
+    - if: inputs.playwright == 'true'
+      run: npx playwright install --with-deps chromium
+      shell: bash
+    - run: npm run tokens
+      shell: bash
+    - run: npm run build -w @dw/ui
+      shell: bash
