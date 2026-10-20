@@ -1,0 +1,21 @@
+{
+  "name": "@dw/ui-emotion",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@dw/ui": "*",
+    "@emotion/css": "^11.13.5"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "react": "^19.2.0",
+    "typescript": "^5.9.3"
+  }
+}

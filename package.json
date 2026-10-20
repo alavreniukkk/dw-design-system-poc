@@ -1,0 +1,17 @@
+{
+  "name": "dw-design-system-poc",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "scripts": {
+    "tokens": "node scripts/figma/tokens-to-css.mjs",
+    "compare-layout-styles": "npm run build -w @dw/ui && node scripts/compare-layout-styles/check.mjs",
+    "test": "npm run test -w @dw/ui && npm run compare-layout-styles",
+    "storybook": "npm run storybook -w @dw/ui",
+    "build": "npm run build -w @dw/ui"
+  }
+}

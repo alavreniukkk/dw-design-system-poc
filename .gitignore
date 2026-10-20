@@ -1,0 +1,13 @@
+node_modules
+dist
+playwright-report
+test-results
+coverage
+scripts/figma/out
+scripts/compare-layout-styles/out
+storybook-static
+.env
+.env.*
+.DS_Store
+*.log
+*.tsbuildinfo

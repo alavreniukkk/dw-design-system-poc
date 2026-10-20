@@ -1,0 +1,22 @@
+:root {
+  --btn-font: system-ui, sans-serif;
+  --btn-font-size-md: 14px;
+  --btn-font-size-sm: 12px;
+  --btn-gap: 8px;
+  --btn-height-md: 40px;
+  --btn-height-sm: 32px;
+  --btn-icon: 16px;
+  --btn-pad-x-md: 16px;
+  --btn-pad-x-sm: 12px;
+  --btn-pad-y: 0px;
+  --btn-primary-bg: #7B003F;
+  --btn-primary-fg: #F9F3E6;
+  --btn-primary-hover-bg: #5C002F;
+  --btn-radius: 8px;
+  --btn-secondary-bg: #FFFFFF;
+  --btn-secondary-border: #00163B;
+  --btn-secondary-fg: #00163B;
+  --btn-tertiary-bg: #CE004F;
+  --btn-tertiary-fg: #F9F3E6;
+  --btn-tertiary-hover-bg: #A1003E;
+}

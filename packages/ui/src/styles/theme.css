@@ -1,0 +1,26 @@
+@import "tailwindcss" source(none);
+@import "./tokens.css";
+@source "../components";
+
+@theme inline {
+  --color-btn-primary: var(--btn-primary-bg);
+  --color-btn-primary-fg: var(--btn-primary-fg);
+  --color-btn-primary-hover: var(--btn-primary-hover-bg);
+  --color-btn-secondary: var(--btn-secondary-bg);
+  --color-btn-secondary-fg: var(--btn-secondary-fg);
+  --color-btn-secondary-border: var(--btn-secondary-border);
+  --color-btn-tertiary: var(--btn-tertiary-bg);
+  --color-btn-tertiary-fg: var(--btn-tertiary-fg);
+  --color-btn-tertiary-hover: var(--btn-tertiary-hover-bg);
+  --radius-btn: var(--btn-radius);
+  --spacing-btn-x-md: var(--btn-pad-x-md);
+  --spacing-btn-x-sm: var(--btn-pad-x-sm);
+  --spacing-btn-y: var(--btn-pad-y);
+  --spacing-btn-md: var(--btn-height-md);
+  --spacing-btn-sm: var(--btn-height-sm);
+  --spacing-btn-gap: var(--btn-gap);
+  --spacing-btn-icon: var(--btn-icon);
+  --font-btn: var(--btn-font);
+  --text-btn-md: var(--btn-font-size-md);
+  --text-btn-sm: var(--btn-font-size-sm);
+}

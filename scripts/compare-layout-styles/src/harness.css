@@ -1,0 +1,16 @@
+body {
+  margin: 0;
+}
+
+main {
+  display: grid;
+  gap: 12px;
+  background: #fff;
+  padding: 24px;
+}
+
+section {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
