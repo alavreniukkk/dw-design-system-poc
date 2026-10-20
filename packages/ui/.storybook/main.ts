@@ -15,6 +15,19 @@ const config: StorybookConfig = {
     const allow = config.server.fs.allow ?? [];
     config.server.fs.allow = [...allow, repoRoot];
     config.plugins = [
+      {
+        name: "reload-migrated-json",
+        configureServer(server) {
+          const file = resolve(repoRoot, "migrated.json");
+          server.watcher.add(file);
+          server.watcher.on("change", (changed) => {
+            if (resolve(changed) !== file) {
+              return;
+            }
+            server.ws.send({ type: "full-reload" });
+          });
+        },
+      },
       svgr({
         include: "**/*.svg",
         svgrOptions: {
