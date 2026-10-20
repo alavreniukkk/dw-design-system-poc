@@ -99,7 +99,6 @@ For each name in variants, copy the tertiary pattern:
   --color-btn-<name>-fg: var(--btn-<name>-fg);
   --color-btn-<name>-hover: var(--btn-<name>-hover-bg);
 - cn.ts text-color group: "btn-<name>-fg"
-- Button.figma.ts maps Figma "Variant=<name>" to variant="<name>". Create the file if it is missing.
 - Button.stories.tsx: append "<name>" to argTypes.variant.options. Add a story next to Tertiary:
   export const <PascalName>: Story = { args: { variant: "<name>" } };
   <PascalName> is "<name>" with the first letter uppercased. No extra render.
@@ -113,7 +112,7 @@ For each name in sizes, copy the sm pattern:
 - cn.ts font-size group: "btn-<name>"
 - Button.stories.tsx: append "<name>" to argTypes.size.options. No new story for a size.
 
-Do not write hex. Do not edit packages/ui-emotion, brand.css, or scripts. Do not commit.
+Do not write hex. Do not create Button.figma.ts. Do not edit packages/ui-emotion, brand.css, or scripts. Do not commit.
 `;
 
 const applyModel = async () => {
