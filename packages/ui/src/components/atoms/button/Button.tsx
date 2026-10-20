@@ -13,6 +13,7 @@ const buttonVariants = cva(
           "border-btn-secondary-border bg-btn-secondary text-btn-secondary-fg hover:border-transparent hover:bg-btn-primary hover:text-btn-primary-fg",
         tertiary:
           "bg-btn-tertiary text-btn-tertiary-fg hover:bg-btn-tertiary-hover",
+        ghost: "bg-btn-ghost text-btn-ghost-fg hover:bg-btn-ghost-hover",
       },
       size: {
         md: "h-btn-md px-btn-x-md text-btn-md",

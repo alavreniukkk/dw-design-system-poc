@@ -15,7 +15,7 @@ const meta = {
   argTypes: {
     variant: {
       control: "inline-radio",
-      options: ["primary", "secondary", "tertiary"],
+      options: ["primary", "secondary", "tertiary", "ghost"],
     },
     size: {
       control: "inline-radio",
@@ -50,6 +50,10 @@ export const Secondary: Story = {
 
 export const Tertiary: Story = {
   args: { variant: "tertiary" },
+};
+
+export const Ghost: Story = {
+  args: { variant: "ghost" },
 };
 
 const brandLabel: CSSProperties = {

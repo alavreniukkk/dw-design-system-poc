@@ -6,7 +6,7 @@ const twMerge = extendTailwindMerge({
     classGroups: {
       "font-size": [{ text: ["btn-md", "btn-sm"] }],
       "text-color": [
-        { text: ["btn-primary-fg", "btn-secondary-fg", "btn-tertiary-fg"] },
+        { text: ["btn-primary-fg", "btn-secondary-fg", "btn-tertiary-fg", "btn-ghost-fg"] },
       ],
       "border-w": [{ border: ["btn"] }],
       "border-color": [{ border: ["btn-secondary-border"] }],

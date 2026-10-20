@@ -12,6 +12,9 @@
   --color-btn-tertiary: var(--btn-tertiary-bg);
   --color-btn-tertiary-fg: var(--btn-tertiary-fg);
   --color-btn-tertiary-hover: var(--btn-tertiary-hover-bg);
+  --color-btn-ghost: var(--btn-ghost-bg);
+  --color-btn-ghost-fg: var(--btn-ghost-fg);
+  --color-btn-ghost-hover: var(--btn-ghost-hover-bg);
   --border-width-btn: var(--btn-border-width);
   --opacity-btn-disabled: var(--btn-disabled-opacity);
   --radius-btn: var(--btn-radius);
