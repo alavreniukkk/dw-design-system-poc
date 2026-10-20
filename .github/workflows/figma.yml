@@ -1,0 +1,114 @@
+name: figma
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Figma node URL
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    name: sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/setup
+        with:
+          playwright: "true"
+
+      - name: Require Figma token
+        env:
+          FIGMA_TOKEN: ${{ secrets.FIGMA_TOKEN }}
+        run: |
+          if [ -z "$FIGMA_TOKEN" ]; then
+            echo "Add repository secret FIGMA_TOKEN"
+            exit 1
+          fi
+
+      - name: Compare node
+        env:
+          FIGMA_TOKEN: ${{ secrets.FIGMA_TOKEN }}
+          FIGMA_URL: ${{ inputs.url }}
+        run: node scripts/figma/compare-node.mjs "$FIGMA_URL"
+
+      - name: Show compare output
+        if: failure()
+        run: |
+          for file in scripts/figma/out/unmapped.json scripts/figma/out/diff.json; do
+            if [ -f "$file" ]; then
+              echo "::group::$file"
+              cat "$file"
+              echo "::endgroup::"
+            fi
+          done
+
+      - name: Publish draft
+        if: success()
+        env:
+          FIGMA_URL: ${{ inputs.url }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          branch=figma/button
+          allowed=(
+            tokens/default.json
+            packages/ui/src/styles/tokens.css
+            web/uk/acme/src/styles/brand.css
+          )
+
+          dirty=()
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            dirty+=("${line:3}")
+          done < <(git status --porcelain=v1 -uall)
+
+          if [ ${#dirty[@]} -eq 0 ]; then
+            echo "no token changes"
+            exit 0
+          fi
+
+          for path in "${dirty[@]}"; do
+            ok=0
+            for allow in "${allowed[@]}"; do
+              if [ "$path" = "$allow" ]; then
+                ok=1
+              fi
+            done
+            if [ "$ok" -ne 1 ]; then
+              echo "unexpected change: $path"
+              exit 1
+            fi
+          done
+
+          if git fetch origin "refs/heads/$branch:refs/remotes/origin/$branch"; then
+            git stash push -m figma-sync -- "${allowed[@]}"
+            git checkout -B "$branch" "origin/$branch"
+            git stash pop
+          else
+            git checkout -B "$branch"
+          fi
+
+          git add -- "${allowed[@]}"
+          if git diff --cached --quiet; then
+            echo "no token changes"
+            exit 0
+          fi
+
+          git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "Sync Button tokens from Figma." -m "$FIGMA_URL"
+          git push origin "HEAD:$branch"
+
+          existing=$(gh pr list --head "$branch" --base main --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh pr view "$existing" --json url --jq .url
+          else
+            gh pr create --draft --base main --head "$branch" \
+              --title "Sync Button tokens from Figma" \
+              --body "$(printf '%s\n' "Node: $FIGMA_URL" "" "Mapped token values only. Button.tsx is unchanged.")"
+          fi

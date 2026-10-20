@@ -10,6 +10,7 @@
   "scripts": {
     "tokens": "node scripts/figma/tokens-to-css.mjs",
     "compare-layout-styles": "npm run build -w @dw/ui && node scripts/compare-layout-styles/check.mjs",
+    "compare-node": "npm run build -w @dw/ui && node scripts/figma/compare-node.mjs",
     "test": "npm run test -w @dw/ui && npm run compare-layout-styles",
     "storybook": "npm run storybook -w @dw/ui",
     "build": "npm run build -w @dw/ui"
