@@ -17,6 +17,7 @@ jobs:
     name: sync
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
         with:
           playwright: "true"

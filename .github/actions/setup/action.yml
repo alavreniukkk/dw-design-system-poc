@@ -1,5 +1,5 @@
 name: Setup
-description: Checkout, install dependencies, generate tokens, and build @dw/ui
+description: Install dependencies, generate tokens, and build @dw/ui
 
 inputs:
   playwright:
@@ -10,7 +10,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
       with:
         node-version: 20
