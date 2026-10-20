@@ -127,7 +127,7 @@ const applyModel = async () => {
   try {
     result = await Agent.prompt(promptFor(unmapped), {
       apiKey,
-      model: { id: "grok-4.7-high" },
+      model: { id: "grok-4.7" },
       tools: ["read", "edit", "grep", "glob", "ls"],
       local: { cwd: root },
     });
