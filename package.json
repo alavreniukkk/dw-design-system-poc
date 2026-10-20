@@ -13,5 +13,8 @@
     "test": "npm run test -w @dw/ui && npm run compare-layout-styles",
     "storybook": "npm run storybook -w @dw/ui",
     "build": "npm run build -w @dw/ui"
+  },
+  "devDependencies": {
+    "@cursor/sdk": "^1.0.38"
   }
 }

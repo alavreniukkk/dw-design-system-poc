@@ -32,13 +32,17 @@ jobs:
           fi
 
       - name: Compare node
+        id: map
+        continue-on-error: true
+        timeout-minutes: 20
         env:
           FIGMA_TOKEN: ${{ secrets.FIGMA_TOKEN }}
           FIGMA_URL: ${{ inputs.url }}
-        run: node scripts/figma/compare-node.mjs "$FIGMA_URL"
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+        run: node scripts/figma/sync-node.mjs "$FIGMA_URL"
 
       - name: Show compare output
-        if: failure()
+        if: steps.map.outcome == 'failure'
         run: |
           for file in scripts/figma/out/unmapped.json scripts/figma/out/diff.json; do
             if [ -f "$file" ]; then
@@ -49,15 +53,28 @@ jobs:
           done
 
       - name: Publish draft
-        if: success()
+        if: steps.map.outcome == 'success' || steps.map.outcome == 'failure'
         env:
           FIGMA_URL: ${{ inputs.url }}
           GH_TOKEN: ${{ github.token }}
+          MAP_OK: ${{ steps.map.outcome == 'success' }}
         run: |
           set -euo pipefail
           branch=figma/button
           allowed=(
             packages/ui/src/styles/tokens.css
+            packages/ui/src/components/atoms/button/Button.tsx
+            packages/ui/src/components/atoms/button/Button.figma.ts
+            packages/ui/src/styles/theme.css
+            packages/ui/src/utils/cn.ts
+            packages/ui-emotion/src/Button.tsx
+          )
+          model_files=(
+            packages/ui/src/components/atoms/button/Button.tsx
+            packages/ui/src/components/atoms/button/Button.figma.ts
+            packages/ui/src/styles/theme.css
+            packages/ui/src/utils/cn.ts
+            packages/ui-emotion/src/Button.tsx
           )
 
           dirty=()
@@ -66,8 +83,24 @@ jobs:
             dirty+=("${line:3}")
           done < <(git status --porcelain=v1 -uall)
 
+          agent=0
+          for path in "${dirty[@]}"; do
+            for model in "${model_files[@]}"; do
+              if [ "$path" = "$model" ]; then
+                agent=1
+              fi
+            done
+          done
+          if [ "$MAP_OK" != "true" ] && [ "$agent" -ne 1 ]; then
+            echo "compare failed with no component patch"
+            exit 1
+          fi
+
           if [ ${#dirty[@]} -eq 0 ]; then
             echo "no token changes"
+            if [ "$MAP_OK" != "true" ]; then
+              exit 1
+            fi
             exit 0
           fi
 
@@ -84,33 +117,50 @@ jobs:
             fi
           done
 
+          present=()
+          for allow in "${allowed[@]}"; do
+            if [ -e "$allow" ] || git ls-files --error-unmatch -- "$allow" >/dev/null 2>&1; then
+              present+=("$allow")
+            fi
+          done
+
           if git fetch origin "refs/heads/$branch:refs/remotes/origin/$branch"; then
-            git stash push -m figma-sync -- "${allowed[@]}"
+            git stash push -m figma-sync -- "${present[@]}"
             git checkout -B "$branch" "origin/$branch"
             git stash pop
           else
             git checkout -B "$branch"
           fi
 
-          git add -- "${allowed[@]}"
+          git add -- "${present[@]}"
           if git diff --cached --quiet; then
             echo "no token changes"
+            if [ "$MAP_OK" != "true" ]; then
+              exit 1
+            fi
             exit 0
           fi
 
           title="Sync Button from Figma"
-          token_diff=$(git diff --cached -- packages/ui/src/styles/tokens.css)
+          token_diff=$(git diff --cached)
+          unchanged="Unchanged: Button.tsx, brand.css."
+          if git diff --cached --name-only | grep -qx "packages/ui/src/components/atoms/button/Button.tsx"; then
+            unchanged="Unchanged: brand.css."
+          fi
           body_file=$(mktemp)
           {
             printf '%s\n' "Source: $FIGMA_URL"
             printf '\n'
-            printf '%s\n' "Changed: packages/ui/src/styles/tokens.css"
+            printf '%s\n' "Changed:"
+            git diff --cached --name-only | while IFS= read -r path; do
+              printf '%s\n' "- $path"
+            done
             printf '\n'
             printf '%s\n' '```diff'
             printf '%s\n' "$token_diff"
             printf '%s\n' '```'
             printf '\n'
-            printf '%s\n' "Unchanged: Button.tsx, brand.css."
+            printf '%s\n' "$unchanged"
           } > "$body_file"
 
           git -c user.name="github-actions[bot]" \
@@ -125,4 +175,8 @@ jobs:
             gh pr create --draft --base main --head "$branch" \
               --title "$title" \
               --body-file "$body_file"
+          fi
+          if [ "$MAP_OK" != "true" ]; then
+            echo "compare did not pass; draft left for review"
+            exit 1
           fi

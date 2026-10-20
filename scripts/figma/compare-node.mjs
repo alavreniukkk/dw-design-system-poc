@@ -342,6 +342,17 @@ const cva = {
   size: keysIn(buttonSource, "size"),
 };
 
+for (const variant of cva.variant) {
+  allowed.add(`btn/${variant}/bg`);
+  allowed.add(`btn/${variant}/fg`);
+  allowed.add(`btn/${variant}/hover/bg`);
+}
+for (const size of cva.size) {
+  allowed.add(`btn/height/${size}`);
+  allowed.add(`btn/pad-x/${size}`);
+  allowed.add(`btn/font-size/${size}`);
+}
+
 const unknownKeys = Object.keys(node.tokens).filter((key) => !allowed.has(key));
 const unknownVariants = node.variants.filter((variant) => !cva.variant.includes(variant));
 const unknownSizes = node.sizes.filter((size) => !cva.size.includes(size));
