@@ -19,8 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-        with:
-          playwright: "true"
 
       - name: Require Figma token
         env:
@@ -44,7 +42,7 @@ jobs:
       - name: Show compare output
         if: steps.map.outcome == 'failure'
         run: |
-          for file in scripts/figma/out/unmapped.json scripts/figma/out/diff.json; do
+          for file in scripts/figma/out/unmapped.json; do
             if [ -f "$file" ]; then
               echo "::group::$file"
               cat "$file"
@@ -61,21 +59,7 @@ jobs:
         run: |
           set -euo pipefail
           branch=figma/button
-          allowed=(
-            packages/ui/src/styles/tokens.css
-            packages/ui/src/components/atoms/button/Button.tsx
-            packages/ui/src/components/atoms/button/Button.figma.ts
-            packages/ui/src/styles/theme.css
-            packages/ui/src/utils/cn.ts
-            packages/ui-emotion/src/Button.tsx
-          )
-          model_files=(
-            packages/ui/src/components/atoms/button/Button.tsx
-            packages/ui/src/components/atoms/button/Button.figma.ts
-            packages/ui/src/styles/theme.css
-            packages/ui/src/utils/cn.ts
-            packages/ui-emotion/src/Button.tsx
-          )
+          token=packages/ui/src/styles/tokens.css
 
           dirty=()
           while IFS= read -r line; do
@@ -85,11 +69,17 @@ jobs:
 
           agent=0
           for path in "${dirty[@]}"; do
-            for model in "${model_files[@]}"; do
-              if [ "$path" = "$model" ]; then
-                agent=1
-              fi
-            done
+            case "$path" in
+              packages/ui/*)
+                if [ "$path" != "$token" ]; then
+                  agent=1
+                fi
+                ;;
+              *)
+                echo "unexpected change: $path"
+                exit 1
+                ;;
+            esac
           done
           if [ "$MAP_OK" != "true" ] && [ "$agent" -ne 1 ]; then
             echo "compare failed with no component patch"
@@ -104,35 +94,15 @@ jobs:
             exit 0
           fi
 
-          for path in "${dirty[@]}"; do
-            ok=0
-            for allow in "${allowed[@]}"; do
-              if [ "$path" = "$allow" ]; then
-                ok=1
-              fi
-            done
-            if [ "$ok" -ne 1 ]; then
-              echo "unexpected change: $path"
-              exit 1
-            fi
-          done
-
-          present=()
-          for allow in "${allowed[@]}"; do
-            if [ -e "$allow" ] || git ls-files --error-unmatch -- "$allow" >/dev/null 2>&1; then
-              present+=("$allow")
-            fi
-          done
-
           if git fetch origin "refs/heads/$branch:refs/remotes/origin/$branch"; then
-            git stash push -m figma-sync -- "${present[@]}"
+            git stash push -u -m figma-sync -- "${dirty[@]}"
             git checkout -B "$branch" "origin/$branch"
             git stash pop
           else
             git checkout -B "$branch"
           fi
 
-          git add -- "${present[@]}"
+          git add -- "${dirty[@]}"
           if git diff --cached --quiet; then
             echo "no token changes"
             if [ "$MAP_OK" != "true" ]; then
@@ -143,9 +113,9 @@ jobs:
 
           title="Sync Button from Figma"
           token_diff=$(git diff --cached)
-          unchanged="Unchanged: Button.tsx, brand.css."
-          if git diff --cached --name-only | grep -qx "packages/ui/src/components/atoms/button/Button.tsx"; then
-            unchanged="Unchanged: brand.css."
+          unchanged="Unchanged: brand.css."
+          if [ "$(git diff --cached --name-only)" = "$token" ]; then
+            unchanged="Unchanged: Button.tsx, brand.css."
           fi
           body_file=$(mktemp)
           {

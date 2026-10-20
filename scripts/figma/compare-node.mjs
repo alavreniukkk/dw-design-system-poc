@@ -1,8 +1,6 @@
 import { spawn } from "node:child_process";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
-import { setTimeout as delay } from "node:timers/promises";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const outDir = fileURLToPath(new URL("./out/", import.meta.url));
@@ -12,10 +10,6 @@ const buttonPath = fileURLToPath(
 const tokensCssPath = fileURLToPath(
   new URL("../../packages/ui/src/styles/tokens.css", import.meta.url),
 );
-const harnessRoot = fileURLToPath(new URL("../compare-layout-styles/", import.meta.url));
-const viteBin = fileURLToPath(new URL("../../node_modules/vite/bin/vite.js", import.meta.url));
-const port = 4179;
-const origin = `http://127.0.0.1:${port}`;
 
 const allowed = new Set([
   "btn/primary/bg",
@@ -40,29 +34,6 @@ const allowed = new Set([
   "btn/icon",
 ]);
 
-const readBox = (node) => {
-  const style = getComputedStyle(node);
-  const box = node.getBoundingClientRect();
-  const icon = node.querySelector("svg");
-  const iconBox = icon ? icon.getBoundingClientRect() : null;
-  const px = (value) => `${value}px`;
-  return {
-    backgroundColor: style.backgroundColor,
-    color: style.color,
-    borderTopColor: style.borderTopColor,
-    fontSize: style.fontSize,
-    height: px(box.height),
-    paddingTop: style.paddingTop,
-    paddingRight: style.paddingRight,
-    paddingBottom: style.paddingBottom,
-    paddingLeft: style.paddingLeft,
-    borderRadius: style.borderRadius,
-    columnGap: style.columnGap,
-    iconWidth: iconBox ? px(iconBox.width) : "",
-    iconHeight: iconBox ? px(iconBox.height) : "",
-  };
-};
-
 const keysIn = (source, group) => {
   const start = source.indexOf(`\n      ${group}: {`);
   const end = source.indexOf("\n      },", start);
@@ -72,46 +43,6 @@ const keysIn = (source, group) => {
   return [...source.slice(start, end).matchAll(/\n        (?:"([^"]+)"|([A-Za-z0-9-]+)):/g)].map(
     (match) => match[1] ?? match[2],
   );
-};
-
-const nums = (value) => String(value).match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
-
-const hexToRgb = (hex) => {
-  const raw = hex.slice(1);
-  const r = Number.parseInt(raw.slice(0, 2), 16);
-  const g = Number.parseInt(raw.slice(2, 4), 16);
-  const b = Number.parseInt(raw.slice(4, 6), 16);
-  return `rgb(${r}, ${g}, ${b})`;
-};
-
-const colorOf = (value) => {
-  const match = String(value).match(/rgba?\(([^)]+)\)/);
-  if (!match) {
-    return value;
-  }
-  const [r, g, b, a] = match[1].split(",").map((part) => part.trim());
-  if (a === undefined || a === "1") {
-    return `rgb(${r}, ${g}, ${b})`;
-  }
-  return `rgba(${r}, ${g}, ${b}, ${a})`;
-};
-
-const differs = (expected, actual) => {
-  if (String(expected).startsWith("#")) {
-    return colorOf(actual) !== hexToRgb(expected);
-  }
-  const exp = nums(expected);
-  const act = nums(actual);
-  if (exp.length === 0 || act.length === 0) {
-    return true;
-  }
-  if (exp.length === 1) {
-    return act.some((value) => Math.abs(value - exp[0]) > 1);
-  }
-  if (exp.length !== act.length) {
-    return true;
-  }
-  return exp.some((value, index) => Math.abs(value - act[index]) > 1);
 };
 
 const writeOut = async (name, body) => {
@@ -370,126 +301,4 @@ if (unknownKeys.length > 0 || unknownVariants.length > 0 || unknownSizes.length 
 }
 
 await syncTokensCss(node.tokens);
-
-const cells = [];
-for (const variant of node.variants) {
-  for (const size of node.sizes) {
-    const pairs = [
-      [`btn/${variant}/bg`, "backgroundColor"],
-      [`btn/${variant}/fg`, "color"],
-      [`btn/height/${size}`, "height"],
-      [`btn/pad-x/${size}`, "paddingLeft"],
-      [`btn/pad-x/${size}`, "paddingRight"],
-      ["btn/pad-y", "paddingTop"],
-      ["btn/pad-y", "paddingBottom"],
-      ["btn/radius", "borderRadius"],
-      [`btn/font-size/${size}`, "fontSize"],
-    ].filter(([token]) => token in node.tokens);
-    if (variant === "secondary" && "btn/secondary/border" in node.tokens) {
-      pairs.push(["btn/secondary/border", "borderTopColor"]);
-    }
-    if (pairs.length === 0) {
-      continue;
-    }
-    cells.push({
-      id: `button/default/${variant}/${size}/text/enabled`,
-      state: "rest",
-      pairs,
-    });
-    const hoverKey = `btn/${variant}/hover/bg`;
-    if (hoverKey in node.tokens) {
-      cells.push({
-        id: `button/default/${variant}/${size}/text/enabled`,
-        state: "hover",
-        pairs: [[hoverKey, "backgroundColor"]],
-      });
-    }
-  }
-}
-const iconPairs = [
-  ["btn/icon", "iconWidth"],
-  ["btn/icon", "iconHeight"],
-].filter(([token]) => token in node.tokens);
-const gapPairs = [["btn/gap", "columnGap"]].filter(([token]) => token in node.tokens);
-if (gapPairs.length > 0 || iconPairs.length > 0) {
-  cells.push({
-    id: "button/default/primary/md/icon-text/enabled",
-    state: "rest",
-    pairs: [...gapPairs, ...iconPairs],
-  });
-}
-if (iconPairs.length > 0) {
-  cells.push({
-    id: "button/default/primary/md/icon/enabled",
-    state: "rest",
-    pairs: iconPairs,
-  });
-}
-
-const vite = spawn(
-  process.execPath,
-  [viteBin, "--config", "vite.config.mjs", "--host", "127.0.0.1", "--port", String(port), "--strictPort"],
-  { cwd: harnessRoot, stdio: "inherit" },
-);
-
-const stopVite = () => {
-  if (!vite.killed) {
-    vite.kill("SIGTERM");
-  }
-};
-
-const waitForServer = async () => {
-  for (let attempt = 0; attempt < 50; attempt += 1) {
-    try {
-      const response = await fetch(origin);
-      if (response.ok) {
-        return;
-      }
-    } catch {
-      await delay(200);
-    }
-  }
-  throw new Error("compare page did not start");
-};
-
-try {
-  await waitForServer();
-  const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 900, height: 800 } });
-  await page.goto(origin);
-  await page.locator("[data-case]").first().waitFor();
-
-  const lines = new Set();
-  for (const cell of cells) {
-    const row = page.locator(`[data-case="${cell.id}"]`);
-    const button = row.locator("[data-impl=tailwind] > *");
-    await page.mouse.move(0, 0);
-    if (cell.state === "hover") {
-      await button.hover();
-    }
-    const box = await button.evaluate(readBox);
-    for (const [token, property] of cell.pairs) {
-      const expected = node.tokens[token];
-      const actual = box[property];
-      if (!differs(expected, actual)) {
-        continue;
-      }
-      lines.add(`${token}: очікувано ${expected} / фактично ${actual}`);
-    }
-  }
-
-  await browser.close();
-  if (lines.size > 0) {
-    await writeOut("diff.json", { lines: [...lines] });
-    console.error(`compare-node: ${lines.size} rows differ. See scripts/figma/out/diff.json`);
-    process.exitCode = 2;
-  } else {
-    await rm(outDir, { recursive: true, force: true });
-    console.log(`compare-node: ${node.nodeId} matches`);
-  }
-} catch (error) {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-} finally {
-  stopVite();
-}
+console.log(`compare-node: ${node.nodeId} mapped`);

@@ -7,13 +7,10 @@ const root = fileURLToPath(new URL("../..", import.meta.url));
 const compareScript = fileURLToPath(new URL("./compare-node.mjs", import.meta.url));
 const unmappedPath = fileURLToPath(new URL("./out/unmapped.json", import.meta.url));
 
-const modelFiles = [
-  "packages/ui/src/components/atoms/button/Button.tsx",
-  "packages/ui/src/components/atoms/button/Button.figma.ts",
-  "packages/ui/src/styles/theme.css",
-  "packages/ui/src/utils/cn.ts",
-  "packages/ui-emotion/src/Button.tsx",
-];
+const uiRoot = "packages/ui/";
+const tokensFile = "packages/ui/src/styles/tokens.css";
+
+const modelPath = (path) => path.startsWith(uiRoot) && path !== tokensFile;
 
 const hex = /#[0-9A-Fa-f]{3,8}\b/;
 
@@ -93,12 +90,7 @@ ${unmapped}
 
 Button is missing a variant or a size from this Figma component set.
 
-Edit only these files:
-- packages/ui/src/components/atoms/button/Button.tsx
-- packages/ui/src/components/atoms/button/Button.figma.ts
-- packages/ui/src/styles/theme.css
-- packages/ui/src/utils/cn.ts
-- packages/ui-emotion/src/Button.tsx
+Edit only files inside packages/ui/. Do not edit packages/ui/src/styles/tokens.css. The script writes tokens on the next pass.
 
 For each name in variants, copy the tertiary pattern:
 - cva branch "<name>": "bg-btn-<name> text-btn-<name>-fg hover:bg-btn-<name>-hover"
@@ -106,9 +98,11 @@ For each name in variants, copy the tertiary pattern:
   --color-btn-<name>: var(--btn-<name>-bg);
   --color-btn-<name>-fg: var(--btn-<name>-fg);
   --color-btn-<name>-hover: var(--btn-<name>-hover-bg);
-- the same three variables in the Emotion variants object
 - cn.ts text-color group: "btn-<name>-fg"
 - Button.figma.ts maps Figma "Variant=<name>" to variant="<name>". Create the file if it is missing.
+- Button.stories.tsx: append "<name>" to argTypes.variant.options. Add a story next to Tertiary:
+  export const <PascalName>: Story = { args: { variant: "<name>" } };
+  <PascalName> is "<name>" with the first letter uppercased. No extra render.
 
 For each name in sizes, copy the sm pattern:
 - cva branch "<name>": "h-btn-<name> px-btn-x-<name> text-btn-<name>"
@@ -116,10 +110,10 @@ For each name in sizes, copy the sm pattern:
   --spacing-btn-<name>: var(--btn-height-<name>);
   --spacing-btn-x-<name>: var(--btn-pad-x-<name>);
   --text-btn-<name>: var(--btn-font-size-<name>);
-- the same variables in the Emotion sizes object
 - cn.ts font-size group: "btn-<name>"
+- Button.stories.tsx: append "<name>" to argTypes.size.options. No new story for a size.
 
-Do not write hex. Do not edit tokens.css, brand.css, or compare-node.mjs. Do not commit.
+Do not write hex. Do not edit packages/ui-emotion, brand.css, or scripts. Do not commit.
 `;
 
 const applyModel = async () => {
@@ -154,9 +148,8 @@ const applyModel = async () => {
 
 const rejectPatch = async () => {
   const rows = await dirtyRows();
-  const allowed = new Set(modelFiles);
   const illegal = rows.filter(
-    (row) => row.code.includes("D") || row.code.startsWith("R") || !allowed.has(row.path),
+    (row) => row.code.includes("D") || row.code.startsWith("R") || !modelPath(row.path),
   );
   if (illegal.length > 0) {
     console.error(
