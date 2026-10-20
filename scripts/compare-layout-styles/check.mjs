@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { setTimeout as delay } from "node:timers/promises";
@@ -21,6 +21,22 @@ const stopVite = () => {
   if (!vite.killed) {
     vite.kill("SIGTERM");
   }
+};
+
+const componentName = (caseId) => {
+  const base = String(caseId).split("/")[0];
+  return base.charAt(0).toUpperCase() + base.slice(1);
+};
+
+const migratedPath = fileURLToPath(new URL("../../migrated.json", import.meta.url));
+
+const readMigrated = async () => {
+  const migrated = JSON.parse(await readFile(migratedPath, "utf8"));
+  return migrated.components ?? [];
+};
+
+const writeMigrated = async (components) => {
+  await writeFile(migratedPath, `{\n  "components": ${JSON.stringify(components)}\n}\n`);
 };
 
 const readBox = (node) => {
@@ -231,9 +247,26 @@ try {
     console.error(
       `compare-layout-styles: ${failures.length} cells differ. See scripts/compare-layout-styles/out/diff.json`,
     );
+    const failed = [...new Set(failures.map((failure) => componentName(failure.id)))];
+    const listed = await readMigrated();
+    const removed = failed.filter((name) => listed.includes(name));
+    if (removed.length > 0) {
+      await writeMigrated(listed.filter((name) => !removed.includes(name)));
+      console.error(`migrated.json: removed ${removed.join(", ")}`);
+    }
     process.exitCode = 1;
   } else {
     await rm(outDir, { recursive: true, force: true });
+    const casesDir = fileURLToPath(new URL("./src/cases/", import.meta.url));
+    const compared = (await readdir(casesDir))
+      .filter((name) => name.endsWith(".tsx"))
+      .map((name) => componentName(name.slice(0, -".tsx".length)))
+      .sort();
+    const listed = [...(await readMigrated())].sort();
+    if (listed.join("\n") !== compared.join("\n")) {
+      await writeMigrated(compared);
+      console.log(`migrated.json: ${compared.join(", ")}`);
+    }
     console.log(`compare-layout-styles: ${count} nodes match on layout and styles`);
   }
 } catch (error) {

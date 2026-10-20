@@ -57,9 +57,7 @@ jobs:
           set -euo pipefail
           branch=figma/button
           allowed=(
-            tokens/default.json
             packages/ui/src/styles/tokens.css
-            web/uk/acme/src/styles/brand.css
           )
 
           dirty=()

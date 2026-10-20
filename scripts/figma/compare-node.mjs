@@ -9,8 +9,9 @@ const outDir = fileURLToPath(new URL("./out/", import.meta.url));
 const buttonPath = fileURLToPath(
   new URL("../../packages/ui/src/components/atoms/button/Button.tsx", import.meta.url),
 );
-const defaultTokensPath = fileURLToPath(new URL("../../tokens/default.json", import.meta.url));
-const tokensScript = fileURLToPath(new URL("./tokens-to-css.mjs", import.meta.url));
+const tokensCssPath = fileURLToPath(
+  new URL("../../packages/ui/src/styles/tokens.css", import.meta.url),
+);
 const harnessRoot = fileURLToPath(new URL("../compare-layout-styles/", import.meta.url));
 const viteBin = fileURLToPath(new URL("../../node_modules/vite/bin/vite.js", import.meta.url));
 const port = 4179;
@@ -133,35 +134,35 @@ const run = (command, args) =>
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const syncDefaultTokens = async (tokens) => {
-  let text = await readFile(defaultTokensPath, "utf8");
+const syncTokensCss = async (tokens) => {
+  let text = await readFile(tokensCssPath, "utf8");
   const changed = [];
   for (const [key, value] of Object.entries(tokens)) {
     if (!allowed.has(key) || typeof value !== "string") {
       continue;
     }
-    const pattern = new RegExp(`("${escapeRegExp(key)}":\\s*)"([^"]*)"`);
+    const variable = `--${key.replaceAll("/", "-")}`;
+    const pattern = new RegExp(`(${escapeRegExp(variable)}:\\s*)([^;]+);`);
     const match = text.match(pattern);
     if (!match) {
-      const inserted = text.replace(/\n}\s*$/, `,\n  "${key}": "${value}"\n}\n`);
+      const inserted = text.replace(/\n}\s*$/, `\n  ${variable}: ${value};\n}\n`);
       if (inserted === text) {
-        throw new Error(`tokens/default.json has no place for ${key}`);
+        throw new Error(`tokens.css has no place for ${variable}`);
       }
       text = inserted;
       changed.push(key);
       continue;
     }
-    if (match[2] === value) {
+    if (match[2].trim() === value) {
       continue;
     }
-    text = text.replace(pattern, `$1"${value}"`);
+    text = text.replace(pattern, `$1${value};`);
     changed.push(key);
   }
   if (changed.length === 0) {
     return changed;
   }
-  await writeFile(defaultTokensPath, text.endsWith("\n") ? text : `${text}\n`);
-  await run(process.execPath, [tokensScript]);
+  await writeFile(tokensCssPath, text.endsWith("\n") ? text : `${text}\n`);
   await run("npm", ["run", "build", "-w", "@dw/ui"]);
   console.log(`compare-node: wrote ${changed.join(", ")}`);
   return changed;
@@ -357,7 +358,7 @@ if (unknownKeys.length > 0 || unknownVariants.length > 0 || unknownSizes.length 
   process.exit(2);
 }
 
-await syncDefaultTokens(node.tokens);
+await syncTokensCss(node.tokens);
 
 const cells = [];
 for (const variant of node.variants) {
