@@ -98,16 +98,31 @@ jobs:
             exit 0
           fi
 
+          title="Sync Button from Figma"
+          token_diff=$(git diff --cached -- packages/ui/src/styles/tokens.css)
+          body_file=$(mktemp)
+          {
+            printf '%s\n' "Source: $FIGMA_URL"
+            printf '\n'
+            printf '%s\n' "Changed: packages/ui/src/styles/tokens.css"
+            printf '\n'
+            printf '%s\n' '```diff'
+            printf '%s\n' "$token_diff"
+            printf '%s\n' '```'
+            printf '\n'
+            printf '%s\n' "Unchanged: Button.tsx, brand.css."
+          } > "$body_file"
+
           git -c user.name="github-actions[bot]" \
             -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-            commit -m "Sync Button tokens from Figma." -m "$FIGMA_URL"
+            commit -m "Sync Button from Figma." -m "$FIGMA_URL"
           git push origin "HEAD:$branch"
 
           existing=$(gh pr list --head "$branch" --base main --state open --json number --jq '.[0].number // empty')
           if [ -n "$existing" ]; then
-            gh pr view "$existing" --json url --jq .url
+            gh pr edit "$existing" --title "$title" --body-file "$body_file"
           else
             gh pr create --draft --base main --head "$branch" \
-              --title "Sync Button tokens from Figma" \
-              --body "$(printf '%s\n' "Node: $FIGMA_URL" "" "Mapped token values only. Button.tsx is unchanged.")"
+              --title "$title" \
+              --body-file "$body_file"
           fi
