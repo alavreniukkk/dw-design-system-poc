@@ -1,4 +1,4 @@
-name: figma
+name: Figma To Code
 
 on:
   workflow_dispatch:
