@@ -32,6 +32,8 @@ test("secondary sm uses those classes", () => {
   expect(className).toContain("h-btn-sm");
   expect(className).toContain("px-btn-x-sm");
   expect(className).toContain("text-btn-sm");
+  expect(className).toContain("border-btn");
+  expect(className).toContain("disabled:opacity-btn-disabled");
 });
 
 test("tertiary uses that class", () => {

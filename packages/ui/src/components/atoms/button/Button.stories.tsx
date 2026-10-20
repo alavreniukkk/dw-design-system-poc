@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Button } from "./Button";
 
@@ -49,4 +50,26 @@ export const Secondary: Story = {
 
 export const Tertiary: Story = {
   args: { variant: "tertiary" },
+};
+
+const brandLabel: CSSProperties = {
+  margin: "0 0 8px",
+  fontFamily: "var(--btn-font)",
+  fontSize: "var(--btn-font-size-md)",
+  color: "var(--btn-secondary-fg)",
+};
+
+export const Acme: Story = {
+  render: (args) => (
+    <div style={{ display: "flex", gap: 32, alignItems: "flex-end" }}>
+      <div>
+        <p style={brandLabel}>Default</p>
+        <Button {...args} />
+      </div>
+      <div data-brand="acme">
+        <p style={brandLabel}>Acme</p>
+        <Button {...args} />
+      </div>
+    </div>
+  ),
 };

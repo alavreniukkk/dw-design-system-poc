@@ -12,6 +12,8 @@
   --color-btn-tertiary: var(--btn-tertiary-bg);
   --color-btn-tertiary-fg: var(--btn-tertiary-fg);
   --color-btn-tertiary-hover: var(--btn-tertiary-hover-bg);
+  --border-width-btn: var(--btn-border-width);
+  --opacity-btn-disabled: var(--btn-disabled-opacity);
   --radius-btn: var(--btn-radius);
   --spacing-btn-x-md: var(--btn-pad-x-md);
   --spacing-btn-x-sm: var(--btn-pad-x-sm);

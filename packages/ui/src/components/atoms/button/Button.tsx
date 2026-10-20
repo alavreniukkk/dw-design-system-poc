@@ -4,7 +4,7 @@ import { Icon } from "../../../icons";
 import { cn } from "../../../utils/cn";
 
 const buttonVariants = cva(
-  "relative inline-flex items-center justify-center rounded-btn border-2 border-transparent py-btn-y font-btn hover:no-underline disabled:cursor-not-allowed disabled:opacity-50",
+  "relative inline-flex items-center justify-center rounded-btn border-btn border-transparent py-btn-y font-btn hover:no-underline disabled:cursor-not-allowed disabled:opacity-btn-disabled",
   {
     variants: {
       variant: {

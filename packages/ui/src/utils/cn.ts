@@ -8,7 +8,9 @@ const twMerge = extendTailwindMerge({
       "text-color": [
         { text: ["btn-primary-fg", "btn-secondary-fg", "btn-tertiary-fg"] },
       ],
+      "border-w": [{ border: ["btn"] }],
       "border-color": [{ border: ["btn-secondary-border"] }],
+      opacity: [{ opacity: ["btn-disabled"] }],
     },
   },
 });

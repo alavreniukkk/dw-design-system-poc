@@ -1,4 +1,6 @@
 :root {
+  --btn-border-width: 2px;
+  --btn-disabled-opacity: 0.5;
   --btn-font: system-ui, sans-serif;
   --btn-font-size-md: 14px;
   --btn-font-size-sm: 12px;

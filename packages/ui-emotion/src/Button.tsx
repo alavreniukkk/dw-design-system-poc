@@ -18,7 +18,9 @@ const base = css`
   align-items: center;
   justify-content: center;
   border-radius: var(--btn-radius);
-  border: 2px solid transparent;
+  border-width: var(--btn-border-width);
+  border-style: solid;
+  border-color: transparent;
   padding-top: var(--btn-pad-y);
   padding-bottom: var(--btn-pad-y);
   font-family: var(--btn-font);
@@ -27,7 +29,7 @@ const base = css`
   }
   &:disabled {
     cursor: not-allowed;
-    opacity: 0.5;
+    opacity: var(--btn-disabled-opacity);
   }
 `;
 
