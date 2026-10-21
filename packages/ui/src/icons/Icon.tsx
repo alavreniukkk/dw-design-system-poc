@@ -1,8 +1,10 @@
 import type { SVGProps } from "react";
 import Plus from "./plus.svg";
+import Star from "./star.svg";
 
 const icons = {
   plus: Plus,
+  star: Star,
 } as const;
 
 export type IconName = keyof typeof icons;

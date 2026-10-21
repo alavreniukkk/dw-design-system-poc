@@ -1,33 +1,27 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import type { ButtonHTMLAttributes } from "react";
-import { Icon } from "../../../icons";
 import { cn } from "../../../utils/cn";
 
 const buttonVariants = cva(
-  "relative inline-flex items-center justify-center rounded-btn border-btn border-transparent py-btn-y font-btn hover:no-underline disabled:cursor-not-allowed disabled:opacity-btn-disabled",
+  "relative inline-flex items-center justify-center rounded-button border-button font-button font-normal leading-none whitespace-nowrap hover:no-underline disabled:cursor-not-allowed disabled:border-button-disabled-border disabled:bg-button-disabled disabled:text-button-disabled-fg disabled:hover:border-button-disabled-border disabled:hover:bg-button-disabled disabled:hover:text-button-disabled-fg",
   {
     variants: {
       variant: {
-        primary: "bg-btn-primary text-btn-primary-fg hover:bg-btn-primary-hover",
-        secondary:
-          "border-btn-secondary-border bg-btn-secondary text-btn-secondary-fg hover:border-transparent hover:bg-btn-primary hover:text-btn-primary-fg",
-        tertiary:
-          "bg-btn-tertiary text-btn-tertiary-fg hover:bg-btn-tertiary-hover",
+        primary:
+          "border-button-primary-border bg-button-primary text-button-primary-fg hover:bg-button-primary-hover",
+        neutral:
+          "border-button-neutral-border bg-button-neutral text-button-neutral-fg hover:bg-button-neutral-hover",
+        subtle:
+          "border-button-subtle-border bg-button-subtle text-button-subtle-fg hover:border-button-subtle-hover-border hover:text-button-subtle-hover-fg",
       },
       size: {
-        md: "h-btn-md px-btn-x-md text-btn-md",
-        sm: "h-btn-sm px-btn-x-sm text-btn-sm",
-      },
-      content: {
-        text: "",
-        "icon-text": "gap-btn-gap",
-        icon: "",
+        medium: "h-button-medium px-button-x-medium py-button-y-medium text-button-medium",
+        small: "h-button-small px-button-x-small py-button-y-small text-button-small",
       },
     },
     defaultVariants: {
       variant: "primary",
-      size: "md",
-      content: "text",
+      size: "medium",
     },
   },
 );
@@ -38,21 +32,13 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
 export const Button = ({
   variant,
   size,
-  content,
   className,
   type = "button",
   children,
   ...props
 }: ButtonProps) => (
-  <button
-    type={type}
-    className={cn(buttonVariants({ variant, size, content }), className)}
-    {...props}
-  >
-    {content === "icon" || content === "icon-text" ? (
-      <Icon name="plus" className="size-btn-icon shrink-0" aria-hidden />
-    ) : null}
-    {content === "icon" ? <span className="sr-only">{children}</span> : children}
+  <button type={type} className={cn(buttonVariants({ variant, size }), className)} {...props}>
+    {children}
   </button>
 );
 

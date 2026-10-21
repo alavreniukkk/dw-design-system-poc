@@ -6,7 +6,12 @@ module.exports = {
     "^.+\\.svg$": "<rootDir>/jest-svg.cjs",
     "^.+\\.tsx?$": "<rootDir>/jest-esbuild.cjs",
   },
-  collectCoverageFrom: ["src/components/atoms/button/Button.tsx"],
+  collectCoverageFrom: [
+    "src/components/atoms/Button/Button.tsx",
+    "src/components/atoms/ButtonDanger/ButtonDanger.tsx",
+    "src/components/atoms/IconButton/IconButton.tsx",
+    "src/components/molecules/ButtonGroup/ButtonGroup.tsx",
+  ],
   coverageThreshold: {
     global: {
       statements: 80,

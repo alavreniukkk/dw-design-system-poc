@@ -6,6 +6,7 @@ import { Agent, CursorAgentError } from "@cursor/sdk";
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const compareScript = fileURLToPath(new URL("./compare-node.mjs", import.meta.url));
 const unmappedPath = fileURLToPath(new URL("./out/unmapped.json", import.meta.url));
+const componentPath = fileURLToPath(new URL("./out/component.json", import.meta.url));
 
 const uiRoot = "packages/ui/";
 const tokensFile = "packages/ui/src/styles/tokens.css";
@@ -85,35 +86,44 @@ const revert = async (paths) => {
   }
 };
 
-const promptFor = (unmapped) => `unmapped.json:
+const promptFor = (component, unmapped) => {
+  const layer = component.pascal.endsWith("Group") ? "molecules" : "atoms";
+  const file =
+    component.file ??
+    `packages/ui/src/components/${layer}/${component.pascal}/${component.pascal}.tsx`;
+  return `component.json:
+${JSON.stringify(component, null, 2)}
+
+unmapped.json:
 ${unmapped}
 
-Button is missing a variant or a size from this Figma component set.
+${component.name} is missing a variant, a size, or the component file.
+
+Prefix: ${component.slug}
+Component file: ${file}
 
 Edit only files inside packages/ui/. Do not edit packages/ui/src/styles/tokens.css. The script writes tokens on the next pass.
 
-For each name in variants, copy the tertiary pattern:
-- cva branch "<name>": "bg-btn-<name> text-btn-<name>-fg hover:bg-btn-<name>-hover"
-- @theme inline:
-  --color-btn-<name>: var(--btn-<name>-bg);
-  --color-btn-<name>-fg: var(--btn-<name>-fg);
-  --color-btn-<name>-hover: var(--btn-<name>-hover-bg);
-- cn.ts text-color group: "btn-<name>-fg"
-- Button.stories.tsx: append "<name>" to argTypes.variant.options. Add a story next to Tertiary:
-  export const <PascalName>: Story = { args: { variant: "<name>" } };
-  <PascalName> is "<name>" with the first letter uppercased. No extra render.
+If missing is true, create ${file} as a native element with cva. Copy the shape of an existing component in packages/ui/src/components: groups only for axes listed in unmapped. Utilities use the prefix, not hex:
+- variant "<value>": "bg-${component.slug}-<value> text-${component.slug}-<value>-fg border-${component.slug}-<value>-border hover:bg-${component.slug}-<value>-hover"
+- size "<value>": "h-${component.slug}-<value> px-${component.slug}-x-<value> py-${component.slug}-y-<value> text-${component.slug}-<value>"
+Add @theme inline entries that point those utilities at --${component.slug}-* variables.
+Add the new class stems to the matching groups in packages/ui/src/utils/cn.ts.
+Add stories and a render test beside the component.
 
-For each name in sizes, copy the sm pattern:
-- cva branch "<name>": "h-btn-<name> px-btn-x-<name> text-btn-<name>"
-- @theme inline:
-  --spacing-btn-<name>: var(--btn-height-<name>);
-  --spacing-btn-x-<name>: var(--btn-pad-x-<name>);
-  --text-btn-<name>: var(--btn-font-size-<name>);
-- cn.ts font-size group: "btn-<name>"
-- Button.stories.tsx: append "<name>" to argTypes.size.options. No new story for a size.
+If the file exists, copy one existing branch in that same group. Do not invent a second pattern.
+For each name in variants, append it to argTypes.variant.options and add a story:
+  export const <Pascal>: Story = { args: { variant: "<value>" } };
+  <Pascal> is "<value>" with the first letter uppercased.
+For each name in sizes, append it to argTypes.size.options and the @theme size entries above. No new story for a size.
+For each name in contents, copy an existing content branch and append the option.
+For each name in aligns, append it to argTypes.align.options and add a story the same way as a variant.
 
-Do not write hex. Do not create Button.figma.ts. Do not edit packages/ui-emotion, brand.css, or scripts. Do not commit.
+If axes, states, or disabled is set, do not edit files.
+
+Do not write hex. Do not create a .figma.ts file. Do not edit packages/ui-emotion, brand.css, or scripts. Do not commit.
 `;
+};
 
 const applyModel = async () => {
   const apiKey = process.env.CURSOR_API_KEY?.trim();
@@ -122,9 +132,10 @@ const applyModel = async () => {
     return 1;
   }
   const unmapped = await readFile(unmappedPath, "utf8");
+  const component = JSON.parse(await readFile(componentPath, "utf8"));
   let result;
   try {
-    result = await Agent.prompt(promptFor(unmapped), {
+    result = await Agent.prompt(promptFor(component, unmapped), {
       apiKey,
       model: { id: "grok-4.7" },
       tools: ["read", "edit", "grep", "glob", "ls"],

@@ -6,24 +6,19 @@ const meta = {
   title: "Button",
   component: Button,
   args: {
-    children: "Label",
+    children: "Button",
     variant: "primary",
-    size: "md",
-    content: "text",
+    size: "medium",
     disabled: false,
   },
   argTypes: {
     variant: {
       control: "inline-radio",
-      options: ["primary", "secondary", "tertiary"],
+      options: ["primary", "neutral", "subtle"],
     },
     size: {
       control: "inline-radio",
-      options: ["md", "sm"],
-    },
-    content: {
-      control: "inline-radio",
-      options: ["text", "icon-text", "icon"],
+      options: ["medium", "small"],
     },
     disabled: { control: "boolean" },
     children: { control: "text" },
@@ -33,7 +28,7 @@ const meta = {
   parameters: {
     a11y: { test: "error" },
     controls: {
-      include: ["variant", "size", "content", "disabled", "children"],
+      include: ["variant", "size", "disabled", "children"],
     },
   },
 } satisfies Meta<typeof Button>;
@@ -44,19 +39,19 @@ type Story = StoryObj<typeof meta>;
 
 export const Primary: Story = {};
 
-export const Secondary: Story = {
-  args: { variant: "secondary" },
+export const Neutral: Story = {
+  args: { variant: "neutral" },
 };
 
-export const Tertiary: Story = {
-  args: { variant: "tertiary" },
+export const Subtle: Story = {
+  args: { variant: "subtle" },
 };
 
 const brandLabel: CSSProperties = {
   margin: "0 0 8px",
-  fontFamily: "var(--btn-font)",
-  fontSize: "var(--btn-font-size-md)",
-  color: "var(--btn-secondary-fg)",
+  fontFamily: "var(--button-font)",
+  fontSize: "var(--button-font-size-medium)",
+  color: "var(--button-neutral-fg)",
 };
 
 export const Acme: Story = {

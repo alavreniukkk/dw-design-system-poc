@@ -19,42 +19,28 @@ test("disabled does not call onClick", () => {
   expect(onClick).not.toHaveBeenCalled();
 });
 
-test("secondary sm uses those classes", () => {
+test("neutral small uses those classes", () => {
   render(
-    <Button variant="secondary" size="sm">
+    <Button variant="neutral" size="small">
       Add
     </Button>,
   );
   const className = screen.getByRole("button", { name: "Add" }).className;
-  expect(className).toContain("bg-btn-secondary");
-  expect(className).toContain("border-btn-secondary-border");
-  expect(className).not.toMatch(/(^|\s)border-transparent(\s|$)/);
-  expect(className).toContain("h-btn-sm");
-  expect(className).toContain("px-btn-x-sm");
-  expect(className).toContain("text-btn-sm");
-  expect(className).toContain("border-btn");
-  expect(className).toContain("disabled:opacity-btn-disabled");
+  expect(className).toContain("bg-button-neutral");
+  expect(className).toContain("border-button-neutral-border");
+  expect(className).toContain("h-button-small");
+  expect(className).toContain("px-button-x-small");
+  expect(className).toContain("py-button-y-small");
+  expect(className).toContain("text-button-small");
+  expect(className).toContain("border-button");
+  expect(className).toContain("disabled:bg-button-disabled");
 });
 
-test("tertiary uses that class", () => {
-  render(<Button variant="tertiary">Add</Button>);
-  expect(screen.getByRole("button", { name: "Add" }).className).toContain(
-    "bg-btn-tertiary",
-  );
-});
-
-test("icon-text shows the plus and the label", () => {
-  render(<Button content="icon-text">Add</Button>);
-  const button = screen.getByRole("button", { name: "Add" });
-  expect(button.querySelector("svg")).toBeTruthy();
-  expect(button.querySelector(".sr-only")).toBeNull();
-});
-
-test("icon keeps the accessible name", () => {
-  render(<Button content="icon">Add</Button>);
-  const button = screen.getByRole("button", { name: "Add" });
-  expect(button.querySelector("svg")).toBeTruthy();
-  expect(button.querySelector(".sr-only")?.textContent).toBe("Add");
+test("subtle uses that class", () => {
+  render(<Button variant="subtle">Add</Button>);
+  const className = screen.getByRole("button", { name: "Add" }).className;
+  expect(className).toContain("bg-button-subtle");
+  expect(className).toContain("hover:border-button-subtle-hover-border");
 });
 
 test("exposes displayName", () => {
