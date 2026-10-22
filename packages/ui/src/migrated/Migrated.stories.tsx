@@ -19,9 +19,9 @@ const page: CSSProperties = {
   margin: 0,
   padding: 32,
   boxSizing: "border-box",
-  background: "var(--button-primary-fg)",
-  color: "var(--button-neutral-fg)",
-  fontFamily: "var(--button-font)",
+  background: "var(--color-bg-default-secondary)",
+  color: "var(--color-fg-default)",
+  fontFamily: "var(--font-sans)",
 };
 
 const heading: CSSProperties = {
@@ -45,17 +45,17 @@ const item: CSSProperties = {
   gap: 8,
   margin: 0,
   padding: "10px 12px",
-  background: "var(--button-neutral-bg)",
-  border: "1px solid var(--button-neutral-border)",
-  borderRadius: "var(--button-radius)",
-  fontSize: "var(--button-font-size-medium)",
+  background: "var(--color-bg-neutral-tertiary)",
+  border: "1px solid var(--color-border-neutral-secondary)",
+  borderRadius: "var(--radius-200)",
+  fontSize: "var(--font-size-03)",
 };
 
 const mark: CSSProperties = {
   width: 8,
   height: 8,
   borderRadius: 99,
-  background: "var(--button-primary-bg)",
+  background: "var(--color-bg-brand)",
   flex: "0 0 auto",
 };
 
@@ -67,7 +67,7 @@ export const List: Story = {
       <div style={page}>
         <h1 style={heading}>Migrated</h1>
         {components.length === 0 ? (
-          <p style={{ margin: 0, fontSize: "var(--button-font-size-medium)" }}>No components yet.</p>
+          <p style={{ margin: 0, fontSize: "var(--font-size-03)" }}>No components yet.</p>
         ) : (
           <ul style={list}>
             {components.map((name) => (
