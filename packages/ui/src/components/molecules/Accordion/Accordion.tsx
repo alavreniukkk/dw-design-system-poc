@@ -1,7 +1,7 @@
 import { useId, useState, type ReactNode } from "react";
 import { Typography } from "../../atoms/Typography/Typography";
 import { Icon } from "../../../icons";
-import { focusRing } from "../../../styles/focus";
+import { focusRing } from "../../../../lib/focus";
 import { cn } from "../../../utils/cn";
 
 export type AccordionProps = {

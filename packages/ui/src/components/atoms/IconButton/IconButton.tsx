@@ -1,7 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import type { ButtonHTMLAttributes } from "react";
 import { Icon, type IconName } from "../../../icons";
-import { focusRing } from "../../../styles/focus";
+import { focusRing } from "../../../../lib/focus";
 import { cn } from "../../../utils/cn";
 
 const iconButtonVariants = cva(

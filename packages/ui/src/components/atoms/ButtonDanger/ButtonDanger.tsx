@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import type { ButtonHTMLAttributes } from "react";
-import { focusRing } from "../../../styles/focus";
+import { focusRing } from "../../../../lib/focus";
 import { cn } from "../../../utils/cn";
 
 const buttonDangerVariants = cva(

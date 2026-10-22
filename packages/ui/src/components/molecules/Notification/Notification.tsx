@@ -5,7 +5,7 @@ import { ButtonDanger } from "../../atoms/ButtonDanger/ButtonDanger";
 import { IconButton } from "../../atoms/IconButton/IconButton";
 import { Typography } from "../../atoms/Typography/Typography";
 import { Icon, type IconName } from "../../../icons";
-import { focusRing } from "../../../styles/focus";
+import { focusRing } from "../../../../lib/focus";
 import { cn } from "../../../utils/cn";
 
 const notificationVariants = cva(

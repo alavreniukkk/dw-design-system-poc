@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes } from "react";
 import { Icon } from "../../../icons";
-import { focusRing } from "../../../styles/focus";
+import { focusRing } from "../../../../lib/focus";
 import { cn } from "../../../utils/cn";
 
 export type TagToggleProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onChange"> & {

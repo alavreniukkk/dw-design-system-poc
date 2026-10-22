@@ -10,5 +10,5 @@
     "skipLibCheck": true,
     "types": ["jest"]
   },
-  "include": ["src", ".storybook"]
+  "include": ["src", "lib", ".storybook"]
 }
