@@ -5,7 +5,23 @@ const meta = {
   title: "Tag",
   component: Tag,
   args: { children: "Tag", scheme: "brand", variant: "primary" },
-  parameters: { a11y: { test: "error" } },
+  argTypes: {
+    scheme: {
+      control: "inline-radio",
+      options: ["brand", "neutral", "positive", "danger", "warning"],
+    },
+    variant: {
+      control: "inline-radio",
+      options: ["primary", "secondary"],
+    },
+    children: { control: "text" },
+    className: { table: { disable: true } },
+    onRemove: { table: { disable: true } },
+  },
+  parameters: {
+    a11y: { test: "error" },
+    controls: { include: ["children", "scheme", "variant"] },
+  },
 } satisfies Meta<typeof Tag>;
 
 export default meta;

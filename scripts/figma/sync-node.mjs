@@ -106,7 +106,10 @@ Edit only files inside packages/ui/. Do not edit packages/ui/src/styles/tokens.c
 
 If missing is true, create ${file} as a native element with cva. Copy the shape of an existing component in packages/ui/src/components: groups only for axes listed in unmapped. Utilities use the prefix, not hex:
 - variant "<value>": "bg-${component.slug}-<value> text-${component.slug}-<value>-fg border-${component.slug}-<value>-border hover:bg-${component.slug}-<value>-hover"
-- size "<value>": "h-${component.slug}-<value> px-${component.slug}-x-<value> py-${component.slug}-y-<value> text-${component.slug}-<value>"
+- type "<value>": same classes as variant, with the type name in place of the variant name
+- size "<value>": "h-${component.slug}-<value> w-${component.slug}-<value> px-${component.slug}-x-<value> py-${component.slug}-y-<value> text-${component.slug}-<value> leading-${component.slug}-<value>"
+- shape "<value>": "rounded-${component.slug}-<value>"
+If unmapped keys include radius/<shape>/<size>, add a compound variant for that shape and size: "rounded-${component.slug}-<shape>-<size>".
 Add @theme inline entries that point those utilities at --${component.slug}-* variables.
 Add the new class stems to the matching groups in packages/ui/src/utils/cn.ts.
 Add stories and a render test beside the component.
@@ -118,10 +121,12 @@ For each name in variants, append it to argTypes.variant.options and add a story
 For each name in sizes, append it to argTypes.size.options and the @theme size entries above. No new story for a size.
 For each name in contents, copy an existing content branch and append the option.
 For each name in aligns, append it to argTypes.align.options and add a story the same way as a variant.
+For each name in types, append it to argTypes.type.options and add a story the same way as a variant.
+For each name in shapes, append it to argTypes.shape.options and add a story the same way as a variant.
 
 If axes, states, or disabled is set, do not edit files.
 
-Do not write hex. Do not create a .figma.ts file. Do not edit packages/ui-emotion, brand.css, or scripts. Do not commit.
+Do not write hex. Do not create a .figma.ts file. Do not edit packages/ui-emotion or scripts. Do not commit.
 `;
 };
 

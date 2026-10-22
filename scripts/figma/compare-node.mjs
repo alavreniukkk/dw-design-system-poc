@@ -8,7 +8,7 @@ const tokensCssPath = fileURLToPath(
   new URL("../../packages/ui/src/styles/tokens.css", import.meta.url),
 );
 
-const knownAxes = new Set(["variant", "size", "state", "content", "align"]);
+const knownAxes = new Set(["variant", "size", "state", "content", "align", "type", "shape"]);
 const knownStates = new Set(["default", "hover", "disabled"]);
 
 const slugOf = (name) =>
@@ -222,6 +222,14 @@ const fontStack = (family) => {
   return `${family}, system-ui, sans-serif`;
 };
 
+const leadingOf = (label) => {
+  const style = label?.style;
+  if (!style?.fontSize || !Number.isFinite(style.lineHeightPx)) {
+    return null;
+  }
+  return String(Math.round((style.lineHeightPx / style.fontSize) * 100) / 100);
+};
+
 const pick = (components, wanted) =>
   components.find((child) => {
     const props = propsOf(child.name);
@@ -258,18 +266,27 @@ const nodeFromDocument = (fileKey, nodeId, document) => {
   const sizes = list("size");
   const contents = list("content");
   const states = list("state");
+  const types = list("type");
+  const shapes = list("shape");
   const prefix = slugOf(document.name);
   const preferredSize = sizes.includes("medium") ? "medium" : sizes[0];
   const preferredVariant = variants.includes("primary") ? "primary" : variants[0];
+  const colorAxis = variants.length > 0 ? "variant" : "type";
+  const colorNames = colorAxis === "variant" ? variants : types;
+  const preferredColor =
+    colorAxis === "variant" ? preferredVariant : types.includes("initial") ? "initial" : types[0];
+  const preferredShape = shapes.includes("circle") ? "circle" : shapes[0];
   const stateOf = (state) => (states.length > 0 ? state : undefined);
   const tokens = {};
   let sharedDisabled = null;
   let disabledSplits = false;
 
-  for (const variant of variants) {
+  for (const variant of colorNames) {
     const sample = pick(components, {
-      variant,
+      variant: colorAxis === "variant" ? variant : preferredVariant,
+      type: colorAxis === "type" ? variant : undefined,
       size: preferredSize,
+      shape: preferredShape,
       state: stateOf("default"),
       content: contents.includes("text") ? "text" : contents[0],
     });
@@ -283,8 +300,10 @@ const nodeFromDocument = (fileKey, nodeId, document) => {
     }
     tokens[`${prefix}/${variant}/border`] = paint.border;
     const hover = pick(components, {
-      variant,
+      variant: colorAxis === "variant" ? variant : preferredVariant,
+      type: colorAxis === "type" ? variant : undefined,
       size: preferredSize,
+      shape: preferredShape,
       state: "hover",
       content: contents.includes("text") ? "text" : contents[0],
     });
@@ -301,8 +320,10 @@ const nodeFromDocument = (fileKey, nodeId, document) => {
       }
     }
     const disabled = pick(components, {
-      variant,
+      variant: colorAxis === "variant" ? variant : preferredVariant,
+      type: colorAxis === "type" ? variant : undefined,
       size: preferredSize,
+      shape: preferredShape,
       state: "disabled",
       content: contents.includes("text") ? "text" : contents[0],
     });
@@ -318,9 +339,11 @@ const nodeFromDocument = (fileKey, nodeId, document) => {
     if (width && !tokens[`${prefix}/border-width`]) {
       tokens[`${prefix}/border-width`] = width;
     }
-    const radius = radiusOf(sample);
-    if (radius && !tokens[`${prefix}/radius`]) {
-      tokens[`${prefix}/radius`] = radius;
+    if (shapes.length === 0) {
+      const radius = radiusOf(sample);
+      if (radius && !tokens[`${prefix}/radius`]) {
+        tokens[`${prefix}/radius`] = radius;
+      }
     }
     const label = findText(sample);
     const font = fontStack(label?.style?.fontFamily);
@@ -340,7 +363,9 @@ const nodeFromDocument = (fileKey, nodeId, document) => {
   for (const size of sizes) {
     const sample = pick(components, {
       variant: preferredVariant,
+      type: types.includes("initial") ? "initial" : types[0],
       size,
+      shape: preferredShape,
       state: stateOf("default"),
       content: contents.includes("text") ? "text" : contents[0],
     });
@@ -359,6 +384,39 @@ const nodeFromDocument = (fileKey, nodeId, document) => {
     }
     if (label?.style?.fontSize) {
       tokens[`${prefix}/font-size/${size}`] = pxOf(label.style.fontSize);
+    }
+    const leading = leadingOf(label);
+    if (leading) {
+      tokens[`${prefix}/leading/${size}`] = leading;
+    }
+  }
+  if (shapes.length > 0) {
+    for (const shape of shapes) {
+      const bySize = [];
+      for (const size of sizes.length > 0 ? sizes : [undefined]) {
+        const sample = pick(components, {
+          variant: preferredVariant,
+          type: preferredColor,
+          size,
+          shape,
+          state: stateOf("default"),
+          content: contents.includes("text") ? "text" : contents[0],
+        });
+        const radius = sample ? radiusOf(sample) : null;
+        if (radius) {
+          bySize.push([size, radius]);
+        }
+      }
+      const unique = new Set(bySize.map(([, radius]) => radius));
+      if (unique.size === 1 && bySize[0]) {
+        tokens[`${prefix}/radius/${shape}`] = bySize[0][1];
+      } else {
+        for (const [size, radius] of bySize) {
+          if (size) {
+            tokens[`${prefix}/radius/${shape}/${size}`] = radius;
+          }
+        }
+      }
     }
   }
 
@@ -398,6 +456,8 @@ const nodeFromDocument = (fileKey, nodeId, document) => {
     contents,
     states,
     aligns: list("align"),
+    types,
+    shapes,
     extraAxes: Object.keys(axes).filter((key) => !knownAxes.has(key)),
     disabledSplits,
     tokens,
@@ -456,11 +516,24 @@ const allowedFor = (prefix, cva) => {
       keys.add(`${prefix}/${variant}/hover/${part}`);
     }
   }
+  for (const type of cva.type) {
+    for (const part of ["bg", "fg", "border"]) {
+      keys.add(`${prefix}/${type}/${part}`);
+      keys.add(`${prefix}/${type}/hover/${part}`);
+    }
+  }
+  for (const shape of cva.shape) {
+    keys.add(`${prefix}/radius/${shape}`);
+    for (const size of cva.size) {
+      keys.add(`${prefix}/radius/${shape}/${size}`);
+    }
+  }
   for (const size of cva.size) {
     keys.add(`${prefix}/height/${size}`);
     keys.add(`${prefix}/pad-x/${size}`);
     keys.add(`${prefix}/pad-y/${size}`);
     keys.add(`${prefix}/font-size/${size}`);
+    keys.add(`${prefix}/leading/${size}`);
   }
   return keys;
 };
@@ -499,6 +572,8 @@ const cva = {
   size: keysIn(source, "size"),
   content: keysIn(source, "content"),
   align: keysIn(source, "align"),
+  type: keysIn(source, "type"),
+  shape: keysIn(source, "shape"),
 };
 const allowed = allowedFor(node.slug, cva);
 const unknownKeys = componentFile
@@ -509,6 +584,8 @@ const unknownSizes = node.sizes.filter((size) => !cva.size.includes(size));
 const unknownContents = node.contents.filter((content) => !cva.content.includes(content));
 const unknownStates = node.states.filter((state) => !knownStates.has(state));
 const unknownAligns = node.aligns.filter((align) => !cva.align.includes(align));
+const unknownTypes = node.types.filter((type) => !cva.type.includes(type));
+const unknownShapes = node.shapes.filter((shape) => !cva.shape.includes(shape));
 
 if (
   !componentFile ||
@@ -518,6 +595,8 @@ if (
   unknownContents.length > 0 ||
   unknownStates.length > 0 ||
   unknownAligns.length > 0 ||
+  unknownTypes.length > 0 ||
+  unknownShapes.length > 0 ||
   node.extraAxes.length > 0 ||
   node.disabledSplits
 ) {
@@ -529,6 +608,8 @@ if (
     ...(unknownContents.length > 0 ? { contents: unknownContents } : {}),
     ...(unknownStates.length > 0 ? { states: unknownStates } : {}),
     ...(unknownAligns.length > 0 ? { aligns: unknownAligns } : {}),
+    ...(unknownTypes.length > 0 ? { types: unknownTypes } : {}),
+    ...(unknownShapes.length > 0 ? { shapes: unknownShapes } : {}),
     ...(node.extraAxes.length > 0 ? { axes: node.extraAxes } : {}),
     ...(node.disabledSplits ? { disabled: "per-variant" } : {}),
   });
