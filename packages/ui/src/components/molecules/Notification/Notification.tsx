@@ -9,13 +9,13 @@ import { focusRing } from "../../../../lib/focus";
 import { cn } from "../../../utils/cn";
 
 const notificationVariants = cva(
-  "flex w-(--size-notification) items-start gap-300 rounded-200 border border-solid p-400",
+  "flex items-start gap-300 rounded-200 border border-solid p-400",
   {
     variants: {
       variant: {
-        message: "border-(--color-border-default-secondary) bg-(--color-bg-default) text-(--color-fg-default)",
+        message: "border-(--color-border-default-secondary) bg-(--color-bg-default) text-(--color-fg-default) w-[320px]",
         alert:
-          "border-(--color-border-danger-tertiary) bg-(--color-bg-danger-tertiary) text-(--color-fg-danger)",
+          "border-(--color-border-danger-tertiary) bg-(--color-bg-danger-tertiary) text-(--color-fg-danger) w-(--size-notification)",
       },
     },
     defaultVariants: {
