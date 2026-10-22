@@ -76,9 +76,11 @@ jobs:
           done < <(git status --porcelain=v1 -uall)
 
           agent=0
+          patch=0
           for path in "${dirty[@]}"; do
             case "$path" in
               packages/ui/*)
+                patch=1
                 if [ "$path" != "$token" ]; then
                   agent=1
                 fi
@@ -89,13 +91,13 @@ jobs:
                 ;;
             esac
           done
-          if [ "$MAP_OK" != "true" ] && [ "$agent" -ne 1 ]; then
-            echo "compare failed with no component patch"
+          if [ "$MAP_OK" != "true" ] && [ "$patch" -ne 1 ]; then
+            echo "compare failed with no patch"
             exit 1
           fi
 
           if [ ${#dirty[@]} -eq 0 ]; then
-            echo "no token changes"
+            echo "no changes"
             if [ "$MAP_OK" != "true" ]; then
               exit 1
             fi
@@ -112,7 +114,7 @@ jobs:
 
           git add -- "${dirty[@]}"
           if git diff --cached --quiet; then
-            echo "no token changes"
+            echo "no changes"
             if [ "$MAP_OK" != "true" ]; then
               exit 1
             fi

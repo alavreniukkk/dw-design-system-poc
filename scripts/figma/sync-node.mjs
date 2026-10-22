@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { access, readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { Agent, CursorAgentError } from "@cursor/sdk";
 
@@ -10,10 +10,11 @@ const componentPath = fileURLToPath(new URL("./out/component.json", import.meta.
 
 const uiRoot = "packages/ui/";
 const tokensFile = "packages/ui/src/styles/tokens.css";
+const hex = /#[0-9A-Fa-f]{3,8}\b/g;
 
 const modelPath = (path) => path.startsWith(uiRoot) && path !== tokensFile;
 
-const hex = /#[0-9A-Fa-f]{3,8}\b/;
+const layerFor = (pascal) => (/Group$|Block$/.test(pascal) ? "molecules" : "atoms");
 
 const git = (args) =>
   new Promise((resolve, reject) => {
@@ -45,6 +46,8 @@ const dirtyRows = async () => {
     .map((line) => ({ code: line.slice(0, 2), path: line.slice(3) }));
 };
 
+const absPath = (path) => fileURLToPath(new URL(`../../${path}`, import.meta.url));
+
 const runCompare = (url) =>
   new Promise((resolve) => {
     const child = spawn(process.execPath, [compareScript, url], {
@@ -57,74 +60,58 @@ const runCompare = (url) =>
 
 const exists = async (path) => {
   try {
-    await access(path);
+    await readFile(path);
     return true;
   } catch {
     return false;
   }
 };
 
-const revert = async (paths) => {
-  const wanted = new Set(paths);
-  const tracked = [];
-  const untracked = [];
+const snapshotTree = async () => {
+  const files = new Map();
   for (const row of await dirtyRows()) {
-    if (!wanted.has(row.path)) {
-      continue;
-    }
-    if (row.code === "??") {
-      untracked.push(row.path);
-    } else {
-      tracked.push(row.path);
-    }
+    files.set(row.path, await readFile(absPath(row.path), "utf8").catch(() => null));
   }
-  if (tracked.length > 0) {
-    await git(["checkout", "--", ...tracked]);
+  return files;
+};
+
+const restore = async (path, before, after) => {
+  if (!before.has(path)) {
+    const row = after.find((item) => item.path === path);
+    if (row?.code === "??") await git(["clean", "-f", "--", path]);
+    else await git(["checkout", "--", path]);
+    return;
   }
-  if (untracked.length > 0) {
-    await git(["clean", "-f", "--", ...untracked]);
+  const previous = before.get(path);
+  if (previous == null) {
+    await git(["clean", "-f", "--", path]);
+    return;
   }
+  await writeFile(absPath(path), previous);
 };
 
 const promptFor = (component, unmapped) => {
-  const layer = component.pascal.endsWith("Group") ? "molecules" : "atoms";
   const file =
     component.file ??
-    `packages/ui/src/components/${layer}/${component.pascal}/${component.pascal}.tsx`;
+    `packages/ui/src/components/${layerFor(component.pascal)}/${component.pascal}/${component.pascal}.tsx`;
   return `component.json:
 ${JSON.stringify(component, null, 2)}
 
 unmapped.json:
 ${unmapped}
 
-${component.name} is missing a variant, a size, or the component file.
+Bring ${component.name} in line with unmapped.json.
+Read the components next to it and packages/ui/src/styles/tokens.css. Copy the class style those files already use.
 
-Prefix: ${component.slug}
-Component file: ${file}
+File: ${file}
+Edit only files under packages/ui/. Do not edit packages/ui/src/styles/tokens.css.
 
-Edit only files inside packages/ui/. Do not edit packages/ui/src/styles/tokens.css. The script writes tokens on the next pass.
+If missing is true, create the file. Use cva when a sample axis has more than one value. The state axis is not a prop: hover and disabled are prefixes on the same classes (hover: and disabled:).
+For a role in a sample, use the class when candidates has one entry. When it has several or none, copy the nearest existing branch and do not write a hex or a new CSS variable.
 
-If missing is true, create ${file} as a native element with cva. Copy the shape of an existing component in packages/ui/src/components: groups only for axes listed in unmapped. Utilities use the prefix, not hex:
-- variant "<value>": "bg-${component.slug}-<value> text-${component.slug}-<value>-fg border-${component.slug}-<value>-border hover:bg-${component.slug}-<value>-hover"
-- type "<value>": same classes as variant, with the type name in place of the variant name
-- size "<value>": "h-${component.slug}-<value> w-${component.slug}-<value> px-${component.slug}-x-<value> py-${component.slug}-y-<value> text-${component.slug}-<value> leading-${component.slug}-<value>"
-- shape "<value>": "rounded-${component.slug}-<value>"
-If unmapped keys include radius/<shape>/<size>, add a compound variant for that shape and size: "rounded-${component.slug}-<shape>-<size>".
-Add @theme inline entries that point those utilities at --${component.slug}-* variables.
-Add the new class stems to the matching groups in packages/ui/src/utils/cn.ts.
-Add stories and a render test beside the component.
+If values is set, the file already exists. For each missing value, copy one branch in that same group and apply the matching sample the same way.
 
-If the file exists, copy one existing branch in that same group. Do not invent a second pattern.
-For each name in variants, append it to argTypes.variant.options and add a story:
-  export const <Pascal>: Story = { args: { variant: "<value>" } };
-  <Pascal> is "<value>" with the first letter uppercased.
-For each name in sizes, append it to argTypes.size.options and the @theme size entries above. No new story for a size.
-For each name in contents, copy an existing content branch and append the option.
-For each name in aligns, append it to argTypes.align.options and add a story the same way as a variant.
-For each name in types, append it to argTypes.type.options and add a story the same way as a variant.
-For each name in shapes, append it to argTypes.shape.options and add a story the same way as a variant.
-
-If axes, states, or disabled is set, do not edit files.
+Do not add props for keys under axes or states. Do not edit the file when the only keys are axes, states, or drift.
 
 Do not write hex. Do not create a .figma.ts file. Do not edit packages/ui-emotion or scripts. Do not commit.
 `;
@@ -161,28 +148,36 @@ const applyModel = async () => {
   return 0;
 };
 
-const rejectPatch = async () => {
-  const rows = await dirtyRows();
-  const illegal = rows.filter(
+const addedHex = (before, after) => {
+  const previous = new Set(before?.match(hex) ?? []);
+  return (after.match(hex) ?? []).filter((item) => !previous.has(item));
+};
+
+const rejectPatch = async (before) => {
+  const after = await dirtyRows();
+  const touched = [];
+  for (const row of after) {
+    const now = await readFile(absPath(row.path), "utf8").catch(() => null);
+    const previous = before.has(row.path) ? before.get(row.path) : undefined;
+    if (previous === undefined || previous !== now) touched.push({ ...row, now, previous: previous ?? null });
+  }
+  const illegal = touched.filter(
     (row) => row.code.includes("D") || row.code.startsWith("R") || !modelPath(row.path),
   );
+  const hexed = touched.filter(
+    (row) => modelPath(row.path) && row.now && addedHex(row.previous, row.now).length > 0,
+  );
+  if (illegal.length === 0 && hexed.length === 0) return false;
   if (illegal.length > 0) {
-    console.error(
-      `sync-node: model edited unexpected files: ${illegal.map((row) => row.path).join(", ")}`,
-    );
-    await revert(rows.map((row) => row.path));
-    return true;
+    console.error(`sync-node: model edited unexpected files: ${illegal.map((row) => row.path).join(", ")}`);
   }
-  for (const row of rows) {
-    const text = await readFile(fileURLToPath(new URL(`../../${row.path}`, import.meta.url)), "utf8");
-    if (hex.test(text)) {
-      console.error(`sync-node: model wrote a hex in ${row.path}`);
-      await revert(rows.map((entry) => entry.path));
-      return true;
-    }
-  }
-  return false;
+  for (const row of hexed) console.error(`sync-node: model wrote a hex in ${row.path}`);
+  for (const row of touched) await restore(row.path, before, after);
+  return true;
 };
+
+const agentCanHelp = (unmapped) =>
+  unmapped.missing === true || Object.keys(unmapped.values ?? {}).length > 0;
 
 const url = process.argv[2];
 if (!url) {
@@ -194,21 +189,15 @@ let code = 1;
 let modelCalls = 0;
 for (;;) {
   code = await runCompare(url);
-  if (code !== 2 || !(await exists(unmappedPath))) {
-    break;
-  }
-  if (modelCalls >= 2) {
-    break;
-  }
+  if (code !== 2 || !(await exists(unmappedPath))) break;
+  const unmapped = JSON.parse(await readFile(unmappedPath, "utf8"));
+  if (!agentCanHelp(unmapped) || modelCalls >= 2) break;
   modelCalls += 1;
   console.log(`sync-node: unmapped, model attempt ${modelCalls}`);
+  const before = await snapshotTree();
   const applied = await applyModel();
-  if (applied !== 0) {
-    process.exit(applied);
-  }
-  if (await rejectPatch()) {
-    process.exit(1);
-  }
+  if (applied !== 0) process.exit(applied);
+  if (await rejectPatch(before)) process.exit(1);
 }
 
 process.exit(code);
