@@ -6,9 +6,11 @@ import {
   applySourceFixes,
   classesFor,
   compareModel,
+  hasIssues,
   parseCva,
   parseTheme,
   parseTokens,
+  pruneIssues,
   targetFromArg,
 } from "./compare-node.mjs";
 
@@ -301,6 +303,14 @@ describe("compareModel", () => {
     assert.equal(result.issues.axes, undefined);
     assert.equal(result.issues.values, undefined);
     assert.deepEqual(result.issues, {});
+  });
+});
+
+describe("pruneIssues", () => {
+  it("treats an empty drift list as no issue", () => {
+    assert.equal(hasIssues(pruneIssues({ drift: [] })), false);
+    assert.equal(hasIssues(pruneIssues({})), false);
+    assert.equal(hasIssues(pruneIssues({ drift: [{ role: "width", figma: "310px" }] })), true);
   });
 });
 

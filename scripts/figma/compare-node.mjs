@@ -873,7 +873,18 @@ const run = (command, args) =>
     });
   });
 
-const hasIssues = (issues) => Object.keys(issues).length > 0;
+const pruneIssues = (issues) => {
+  const next = {};
+  for (const [key, value] of Object.entries(issues)) {
+    if (value == null) continue;
+    if (Array.isArray(value) && value.length === 0) continue;
+    if (typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0) continue;
+    next[key] = value;
+  }
+  return next;
+};
+
+const hasIssues = (issues) => Object.keys(pruneIssues(issues)).length > 0;
 
 const main = async () => {
   await loadEnv();
@@ -919,7 +930,10 @@ const main = async () => {
     filePath: componentFile,
   });
 
-  if (componentFile && (result.sourceFixes.length || result.tokenFixes.length)) {
+  for (let pass = 0; pass < 5; pass += 1) {
+    if (!componentFile || (!result.sourceFixes.length && !result.tokenFixes.length)) {
+      break;
+    }
     if (result.sourceFixes.length) {
       currentSource = applySourceFixes(currentSource, result.sourceFixes);
       await writeFile(fileURLToPath(new URL(`../../${componentFile}`, import.meta.url)), currentSource);
@@ -930,26 +944,33 @@ const main = async () => {
     if (result.tokenFixes.length) {
       const nextCss = applyTokenFixes(css.tokensCss, result.tokenFixes);
       await writeFile(tokensCssPath, nextCss.endsWith("\n") ? nextCss : `${nextCss}\n`);
+      css.tokensCss = nextCss.endsWith("\n") ? nextCss : `${nextCss}\n`;
       await run("npm", ["run", "build", "-w", "@dw/ui"]);
       console.log(`compare-node: updated ${result.tokenFixes.map((fix) => fix.name).join(", ")}`);
     }
     css = await readCss();
-    const freshSource = await readFile(fileURLToPath(new URL(`../../${componentFile}`, import.meta.url)), "utf8");
+    currentSource = await readFile(fileURLToPath(new URL(`../../${componentFile}`, import.meta.url)), "utf8");
     result = compareModel({
-      source: freshSource,
+      source: currentSource,
       document,
       tokensCss: css.tokensCss,
       themeCss: css.themeCss,
       tsxFiles,
       filePath: componentFile,
     });
-    if (result.sourceFixes.length || result.tokenFixes.length) {
-      result.issues.drift = [
-        ...(result.issues.drift ?? []),
-        ...result.sourceFixes.map((fix) => fix.report),
-      ];
-    }
   }
+
+  if (result.sourceFixes.length || result.tokenFixes.length) {
+    const drift = [...(result.issues.drift ?? [])];
+    for (const fix of result.sourceFixes) {
+      if (fix.report) drift.push(fix.report);
+    }
+    for (const fix of result.tokenFixes) {
+      drift.push({ kind: "token", name: fix.name, figma: fix.value });
+    }
+    if (drift.length) result.issues.drift = drift;
+  }
+  result.issues = pruneIssues(result.issues);
 
   if (hasIssues(result.issues)) {
     await writeOut("unmapped.json", result.issues);
@@ -972,10 +993,12 @@ export {
   applyTokenFixes,
   classesFor,
   compareModel,
+  hasIssues,
   indexUsages,
   parseCva,
   parseTheme,
   parseTokens,
+  pruneIssues,
   propsOf,
   targetFromArg,
 };
