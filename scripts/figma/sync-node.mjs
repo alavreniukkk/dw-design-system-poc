@@ -111,7 +111,9 @@ For a role in a sample, use the class when candidates has one entry. When it has
 
 If values is set, the file already exists. For each missing value, copy one branch in that same group and apply the matching sample the same way.
 
-Do not add props for keys under axes or states. Do not edit the file when the only keys are axes, states, or drift.
+If drift has kind "variant-override", do not change the shared token. Put that row's class on the cva branch named by props. A one-off length is an arbitrary class such as w-[320px]. Do not add a CSS variable for one branch. When class is null, use a candidate only if that branch lists exactly one; otherwise leave the branch.
+
+Do not add props for keys under axes or states. Do not edit the file when the only keys are axes, states, or drift without kind "variant-override".
 
 Do not write hex. Do not create a .figma.ts file. Do not edit packages/ui-emotion or scripts. Do not commit.
 `;
@@ -177,7 +179,9 @@ const rejectPatch = async (before) => {
 };
 
 const agentCanHelp = (unmapped) =>
-  unmapped.missing === true || Object.keys(unmapped.values ?? {}).length > 0;
+  unmapped.missing === true ||
+  Object.keys(unmapped.values ?? {}).length > 0 ||
+  (unmapped.drift ?? []).some((row) => row.kind === "variant-override");
 
 const url = process.argv[2];
 if (!url) {

@@ -5,9 +5,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 // One Figma component set against the React file of the same name.
 // Colors and sizes come from tokens.css and from classes already used in packages/ui.
-// One matching token is rewritten in the component. A literal token used only by this
-// file can change value. A shared token never receives a new hex. Anything else is
-// out/unmapped.json for sync-node.
+// One matching token is rewritten in the component. A component literal used only by
+// this file changes value when every variant agrees. When variants disagree, that
+// class moves onto each cva branch and the shared token stays. Ambiguous splits go
+// to out/unmapped.json for sync-node.
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const outDir = fileURLToPath(new URL("./out/", import.meta.url));
@@ -332,6 +333,13 @@ const classify = (rest, tokens, theme) => {
       kind: "length",
     };
   }
+  const arbitrary = /^(bg|text|border|rounded|h|w|size|px|py|p|gap)-\[([^\]]+)\]$/.exec(rest);
+  if (arbitrary) {
+    const utility = arbitrary[1];
+    const resolved = arbitrary[2];
+    const kind = isColor(resolved) ? "color" : "length";
+    return { role: roleOf(utility, kind), utility, body: rest, resolved, kind };
+  }
   const tokenForm = /^(bg|text|border|rounded|h|w|size|px|py|p|gap)-\(--([\w-]+)\)$/.exec(rest);
   if (tokenForm) {
     const utility = tokenForm[1];
@@ -496,7 +504,7 @@ const valueFor = (ref, node) => {
 
 const literalOwnedByFile = (token, tokens, tokensCss, tsxFiles, filePath) => {
   const entry = tokens.map.get(token);
-  if (!entry || entry.raw.startsWith("var(")) return false;
+  if (!entry || entry.layer !== "component" || entry.raw.startsWith("var(")) return false;
   if (tokensCss.split(token).length - 1 !== 1) return false;
   const owners = tsxFiles.filter((file) => file.source.includes(token));
   return owners.length === 1 && owners[0].path === filePath;
@@ -512,11 +520,128 @@ const reportOf = (ref, props, state, figma, options) => ({
   candidates: options,
 });
 
+const variantKey = (props) => {
+  const rest = {};
+  for (const [key, value] of Object.entries(props)) {
+    if (key !== stateAxis) rest[key] = value;
+  }
+  return JSON.stringify(rest);
+};
+
+const overrideClass = (row, tokens, theme, usages) => {
+  if (!tokenNeedsUpdate(row.resolved, row.value)) return row.atom;
+  if (row.kind === "length") {
+    const steps = stepAtoms(row.utility, row.value, theme);
+    if (steps.length === 1) return steps[0];
+  }
+  const pool = poolFor(row.utility, row.value, tokens, usages).filter((atom) => atom !== row.atom);
+  if (pool.length === 1) return pool[0];
+  if (row.kind === "length") return `${row.utility}-[${row.value}]`;
+  return null;
+};
+
+const tokenNeedsUpdate = (current, value) =>
+  isColor(value) || (typeof current === "string" && current.startsWith("#"))
+    ? !sameColor(current, value)
+    : !sameLength(current, value);
+
+const sameMeasure = (left, right) =>
+  isColor(left) || isColor(right) ? sameColor(left, right) : sameLength(left, right);
+
+const planSplit = (rows, cva, tokens, theme, usages) => {
+  const buckets = new Map();
+  for (const row of rows) {
+    const key = variantKey(row.props);
+    const bucket = buckets.get(key) ?? [];
+    bucket.push(row);
+    buckets.set(key, bucket);
+  }
+  const representatives = [];
+  for (const bucket of buckets.values()) {
+    const first = bucket[0].value;
+    if (bucket.some((row) => !sameMeasure(row.value, first))) {
+      return {
+        ok: false,
+        report: {
+          kind: "variant-override",
+          token: rows[0].token ?? null,
+          atom: rows[0].atom,
+          reason: "same variant has more than one value",
+          branches: bucket.map((row) => ({ props: row.props, state: row.state, figma: row.value })),
+        },
+      };
+    }
+    representatives.push(bucket[0]);
+  }
+  const axisKeys = [];
+  const keys = new Set(representatives.flatMap((row) => Object.keys(row.props).filter((key) => key !== stateAxis)));
+  for (const key of keys) {
+    if (new Set(representatives.map((row) => row.props[key])).size > 1) axisKeys.push(key);
+  }
+  const report = {
+    kind: "variant-override",
+    token: rows[0].token ?? null,
+    atom: rows[0].atom,
+    keep: rows[0].resolved,
+    axis: axisKeys.length === 1 ? axisKeys[0] : null,
+    branches: representatives.map((row) => ({
+      props: row.props,
+      figma: row.value,
+      class: overrideClass(row, tokens, theme, usages),
+      candidates: poolFor(row.utility, row.value, tokens, usages).filter((atom) => atom !== row.atom),
+    })),
+  };
+  if (axisKeys.length !== 1 || !cva.variants[axisKeys[0]]) return { ok: false, report };
+  const axis = axisKeys[0];
+  const branches = cva.variants[axis];
+  const fixes = [];
+  const classes = [];
+  for (const [value, branch] of Object.entries(branches)) {
+    const row = representatives.find((item) => item.props[axis] === value);
+    const cls = row ? overrideClass(row, tokens, theme, usages) : rows[0].atom;
+    if (!cls) return { ok: false, report };
+    classes.push({ value, cls, branch });
+  }
+  if (new Set(rows.map((row) => row.part.start)).size === 1) {
+    const part = rows[0].part;
+    fixes.push({ start: part.start, end: part.end, remove: rows[0].atom });
+    for (const item of classes) {
+      fixes.push({ start: item.branch.start, end: item.branch.end, append: item.cls });
+    }
+    return { ok: true, fixes };
+  }
+  for (const row of representatives) {
+    const cls = overrideClass(row, tokens, theme, usages);
+    if (!cls) return { ok: false, report };
+    if (cls === row.atom) continue;
+    fixes.push({ start: row.part.start, end: row.part.end, from: row.atom, to: cls });
+  }
+  return { ok: true, fixes };
+};
+
+const watchRef = (ref, figma, props, state, ctx) => {
+  if (figma == null || ref.inherited || !ref.part) return;
+  ctx.observed.push({
+    atom: ref.atom,
+    utility: ref.utility,
+    kind: ref.kind,
+    token: ref.token ?? null,
+    resolved: ref.resolved,
+    value: figma,
+    props,
+    state,
+    part: ref.part,
+  });
+};
+
 const assessRef = (ref, node, props, state, ctx) => {
   if (ref.role === "size") {
     const heightOk = node.height == null || sameLength(ref.resolved, node.height);
     const widthOk = node.width == null || sameLength(ref.resolved, node.width);
-    if (heightOk && widthOk) return;
+    if (heightOk && widthOk) {
+      watchRef(ref, node.height, props, state, ctx);
+      return;
+    }
     if (heightOk && !widthOk) {
       ctx.drift.push(reportOf(ref, props, state, node.width, []));
       return;
@@ -525,7 +650,10 @@ const assessRef = (ref, node, props, state, ctx) => {
   if (ref.role === "pad") {
     const xOk = node.padX == null || sameLength(ref.resolved, node.padX);
     const yOk = node.padY == null || sameLength(ref.resolved, node.padY);
-    if (xOk && yOk) return;
+    if (xOk && yOk) {
+      watchRef(ref, node.padX, props, state, ctx);
+      return;
+    }
     if (node.padX != null && node.padY != null && !sameLength(node.padX, node.padY)) {
       ctx.drift.push(reportOf(ref, props, state, `${node.padX}/${node.padY}`, []));
       return;
@@ -533,6 +661,7 @@ const assessRef = (ref, node, props, state, ctx) => {
   }
   const figma = ref.role === "size" ? node.height : ref.role === "pad" ? node.padX : valueFor(ref, node);
   if (figma == null) return;
+  watchRef(ref, figma, props, state, ctx);
   if (ref.role !== "size" && ref.role !== "pad" && matches(ref, figma)) return;
   const options = optionsFor(ref, figma, ctx.tokens, ctx.theme, ctx.usages);
   if (!ref.inherited && options.length === 1) {
@@ -675,7 +804,7 @@ const compareModel = ({ source, document, tokensCss, themeCss, tsxFiles, filePat
   const sourceFixes = [];
   const tokenFixes = [];
   const samples = [];
-  const ctx = { tokens, theme, usages, tokensCss, tsxFiles, filePath, drift, sourceFixes, tokenFixes };
+  const ctx = { tokens, theme, usages, tokensCss, tsxFiles, filePath, drift, sourceFixes, tokenFixes, observed: [] };
 
   for (const child of children) {
     for (const [axis, value] of Object.entries(propsOf(child.name))) {
@@ -725,6 +854,36 @@ const compareModel = ({ source, document, tokensCss, themeCss, tsxFiles, filePat
     }
   }
 
+  const groups = new Map();
+  for (const row of ctx.observed) {
+    const key = `${row.part.start}:${row.atom}`;
+    const list = groups.get(key) ?? [];
+    list.push(row);
+    groups.set(key, list);
+  }
+  for (const rows of groups.values()) {
+    const first = rows[0].value;
+    if (!rows.some((row) => !sameMeasure(row.value, first))) continue;
+    const atom = rows[0].atom;
+    const token = rows[0].token;
+    for (let index = sourceFixes.length - 1; index >= 0; index -= 1) {
+      if (sourceFixes[index].from === atom) sourceFixes.splice(index, 1);
+    }
+    if (token) {
+      for (let index = tokenFixes.length - 1; index >= 0; index -= 1) {
+        if (tokenFixes[index].name === token) tokenFixes.splice(index, 1);
+      }
+    }
+    const split = planSplit(rows, cva, tokens, theme, usages);
+    if (split.ok) sourceFixes.push(...split.fixes);
+    else {
+      for (let index = drift.length - 1; index >= 0; index -= 1) {
+        if (drift[index].code === atom && !drift[index].kind) drift.splice(index, 1);
+      }
+      drift.push(split.report);
+    }
+  }
+
   const issues = {};
   if (missing) issues.missing = true;
   if (!missing && Object.keys(axes).length) {
@@ -736,7 +895,11 @@ const compareModel = ({ source, document, tokensCss, themeCss, tsxFiles, filePat
   if (samples.length && (missing || Object.keys(values).length)) issues.samples = samples;
   const sourceByKey = new Map();
   for (const fix of sourceFixes) {
-    const key = `${fix.start}:${fix.from}`;
+    const key = fix.remove
+      ? `${fix.start}:remove:${fix.remove}`
+      : fix.append
+        ? `${fix.start}:append:${fix.append}`
+        : `${fix.start}:${fix.from}`;
     const prev = sourceByKey.get(key);
     if (!prev) sourceByKey.set(key, fix);
     else if (prev.to !== fix.to) prev.conflict = true;
@@ -774,7 +937,15 @@ const applySourceFixes = (source, fixes) => {
     const { start, end } = list[0];
     let slice = next.slice(start, end);
     for (const fix of list) {
-      if (slice.includes(fix.from)) slice = slice.replace(fix.from, fix.to);
+      if (fix.remove) {
+        slice = slice.replace(fix.remove, " ").replace(/\s+/g, " ").trim();
+        continue;
+      }
+      if (fix.append) {
+        if (!slice.includes(fix.append)) slice = `${slice} ${fix.append}`.trim();
+        continue;
+      }
+      if (fix.from && slice.includes(fix.from)) slice = slice.replace(fix.from, fix.to);
     }
     next = next.slice(0, start) + slice + next.slice(end);
   }

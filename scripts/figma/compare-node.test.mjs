@@ -284,6 +284,143 @@ describe("compareModel", () => {
     assert.ok(result.issues.samples.some((sample) => sample.props.variant === "ghost"));
   });
 
+  it("keeps the shared size when one variant differs and writes that size on the branch", () => {
+    const css = `:root {\n  /* component */\n  --size-notification: 300px;\n}\n`;
+    const path = "packages/ui/src/components/molecules/Notification/Notification.tsx";
+    const source = `const notificationVariants = cva("flex w-(--size-notification) items-start", {
+      variants: { variant: { message: "border-solid", alert: "border-solid" } },
+    });
+    export const Notification = ({ variant }) => variant;`;
+    const result = compareModel({
+      source,
+      document: {
+        name: "Notification",
+        children: [
+          frame("Variant=Message", { width: 320, height: 80 }),
+          frame("Variant=Alert", { width: 300, height: 80 }),
+        ],
+      },
+      tokensCss: css,
+      themeCss: "",
+      tsxFiles: [{ path, source }],
+      filePath: path,
+    });
+    assert.deepEqual(result.tokenFixes, []);
+    assert.equal(result.issues.drift, undefined);
+    const next = applySourceFixes(source, result.sourceFixes);
+    assert.match(next, /message: "border-solid w-\[320px\]"/);
+    assert.match(next, /alert: "border-solid w-\(--size-notification\)"/);
+    assert.doesNotMatch(next.slice(0, next.indexOf("variants")), /w-\(--size-notification\)/);
+    const again = compareModel({
+      source: next,
+      document: {
+        name: "Notification",
+        children: [
+          frame("Variant=Message", { width: 320, height: 80 }),
+          frame("Variant=Alert", { width: 300, height: 80 }),
+        ],
+      },
+      tokensCss: css,
+      themeCss: "",
+      tsxFiles: [{ path, source: next }],
+      filePath: path,
+    });
+    assert.deepEqual(again.tokenFixes, []);
+    assert.deepEqual(again.sourceFixes, []);
+    assert.deepEqual(again.issues, {});
+  });
+
+  it("updates the shared size when every variant wants the same new value", () => {
+    const css = `:root {\n  /* component */\n  --size-notification: 300px;\n}\n`;
+    const path = "packages/ui/src/components/molecules/Notification/Notification.tsx";
+    const source = `const notificationVariants = cva("w-(--size-notification)", {
+      variants: { variant: { message: "border-solid", alert: "border-solid" } },
+    });
+    export const Notification = ({ variant }) => variant;`;
+    const result = compareModel({
+      source,
+      document: {
+        name: "Notification",
+        children: [
+          frame("Variant=Message", { width: 320, height: 40 }),
+          frame("Variant=Alert", { width: 320, height: 40 }),
+        ],
+      },
+      tokensCss: css,
+      themeCss: "",
+      tsxFiles: [{ path, source }],
+      filePath: path,
+    });
+    assert.deepEqual(result.tokenFixes, [{ name: "--size-notification", value: "320px" }]);
+    assert.equal(result.sourceFixes.length, 0);
+  });
+
+  it("moves one variant color onto that branch when a single token matches", () => {
+    const css = `:root {
+      /* semantic */
+      --color-bg-brand: #111111;
+      --color-bg-danger: #FF0000;
+    }`;
+    const path = "packages/ui/src/components/molecules/Notification/Notification.tsx";
+    const source = `const notificationVariants = cva("bg-(--color-bg-brand)", {
+      variants: { variant: { message: "border-solid", alert: "border-solid" } },
+    });
+    export const Notification = ({ variant }) => variant;`;
+    const result = compareModel({
+      source,
+      document: {
+        name: "Notification",
+        children: [
+          frame("Variant=Message", { bg: "#FF0000", width: 120, height: 40 }),
+          frame("Variant=Alert", { bg: "#111111", width: 120, height: 40 }),
+        ],
+      },
+      tokensCss: css,
+      themeCss: "",
+      tsxFiles: [{ path, source }],
+      filePath: path,
+    });
+    assert.deepEqual(result.tokenFixes, []);
+    assert.equal(result.issues.drift, undefined);
+    const next = applySourceFixes(source, result.sourceFixes);
+    assert.match(next, /message: "border-solid bg-\(--color-bg-danger\)"/);
+    assert.match(next, /alert: "border-solid bg-\(--color-bg-brand\)"/);
+    assert.doesNotMatch(next.slice(0, next.indexOf("variants")), /bg-\(--color-bg-brand\)/);
+  });
+
+  it("asks for a variant override when one variant color has several tokens", () => {
+    const css = `:root {
+      /* semantic */
+      --color-bg-default: #FFFFFF;
+      --color-bg-neutral: #FFFFFF;
+      --color-bg-brand: #111111;
+    }`;
+    const path = "packages/ui/src/components/molecules/Notification/Notification.tsx";
+    const source = `const notificationVariants = cva("bg-(--color-bg-brand)", {
+      variants: { variant: { message: "border-solid", alert: "border-solid" } },
+    });
+    export const Notification = ({ variant }) => variant;`;
+    const result = compareModel({
+      source,
+      document: {
+        name: "Notification",
+        children: [
+          frame("Variant=Message", { bg: "#FFFFFF", width: 120, height: 40 }),
+          frame("Variant=Alert", { bg: "#111111", width: 120, height: 40 }),
+        ],
+      },
+      tokensCss: css,
+      themeCss: "",
+      tsxFiles: [{ path, source }],
+      filePath: path,
+    });
+    assert.deepEqual(result.tokenFixes, []);
+    assert.equal(result.sourceFixes.length, 0);
+    assert.equal(result.issues.drift[0].kind, "variant-override");
+    assert.equal(result.issues.drift[0].axis, "variant");
+    assert.equal(result.issues.drift[0].branches.find((row) => row.props.variant === "message").class, null);
+  });
+
   it("keeps a scheme axis when cva already has it", () => {
     const source = `const tagVariants = cva("", {
       variants: { scheme: { brand: "bg-(--color-bg-brand)" } },
