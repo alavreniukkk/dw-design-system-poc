@@ -7,10 +7,10 @@ module.exports = {
     "^.+\\.tsx?$": "<rootDir>/jest-esbuild.cjs",
   },
   collectCoverageFrom: [
-    "src/components/atoms/Button/Button.tsx",
-    "src/components/atoms/ButtonDanger/ButtonDanger.tsx",
-    "src/components/atoms/IconButton/IconButton.tsx",
-    "src/components/molecules/ButtonGroup/ButtonGroup.tsx",
+    "src/components/atoms/**/*.tsx",
+    "src/components/molecules/**/*.tsx",
+    "!src/components/**/*.stories.tsx",
+    "!src/components/**/*.test.tsx",
   ],
   coverageThreshold: {
     global: {

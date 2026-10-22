@@ -121,9 +121,9 @@ jobs:
 
           title="Sync ${name} from Figma"
           token_diff=$(git diff --cached)
-          unchanged="Unchanged: brand.css."
+          unchanged=""
           if [ "$(git diff --cached --name-only)" = "$token" ] && [ -n "$file" ]; then
-            unchanged="Unchanged: ${file}, brand.css."
+            unchanged="Unchanged: ${file}."
           fi
           body_file=$(mktemp)
           {
@@ -137,8 +137,10 @@ jobs:
             printf '%s\n' '```diff'
             printf '%s\n' "$token_diff"
             printf '%s\n' '```'
-            printf '\n'
-            printf '%s\n' "$unchanged"
+            if [ -n "$unchanged" ]; then
+              printf '\n'
+              printf '%s\n' "$unchanged"
+            fi
           } > "$body_file"
 
           git -c user.name="github-actions[bot]" \

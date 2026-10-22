@@ -1,22 +1,23 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import type { ButtonHTMLAttributes } from "react";
+import { focusRing } from "../../../styles/focus";
 import { cn } from "../../../utils/cn";
 
 const buttonVariants = cva(
-  "relative inline-flex items-center justify-center rounded-button border-button font-button font-normal leading-none whitespace-nowrap hover:no-underline disabled:cursor-not-allowed disabled:border-button-disabled-border disabled:bg-button-disabled disabled:text-button-disabled-fg disabled:hover:border-button-disabled-border disabled:hover:bg-button-disabled disabled:hover:text-button-disabled-fg",
+  `relative inline-flex items-center justify-center rounded-200 border border-solid font-sans text-03 leading-none font-normal whitespace-nowrap hover:no-underline disabled:cursor-not-allowed disabled:border-(--color-border-disabled) disabled:bg-(--color-bg-disabled) disabled:text-(--color-fg-disabled-on) disabled:hover:border-(--color-border-disabled) disabled:hover:bg-(--color-bg-disabled) disabled:hover:text-(--color-fg-disabled-on) ${focusRing}`,
   {
     variants: {
       variant: {
         primary:
-          "border-button-primary-border bg-button-primary text-button-primary-fg hover:bg-button-primary-hover",
+          "border-(--color-border-brand) bg-(--color-bg-brand) text-(--color-fg-on-brand) hover:bg-(--color-bg-brand-hover)",
         neutral:
-          "border-button-neutral-border bg-button-neutral text-button-neutral-fg hover:bg-button-neutral-hover",
+          "border-(--color-border-neutral-secondary) bg-(--color-bg-neutral-tertiary) text-(--color-fg-default) hover:bg-(--color-bg-neutral-tertiary-hover)",
         subtle:
-          "border-button-subtle-border bg-button-subtle text-button-subtle-fg hover:border-button-subtle-hover-border hover:text-button-subtle-hover-fg",
+          "border-transparent bg-transparent text-(--color-fg-neutral) hover:border-(--color-border-default) hover:text-(--color-fg-default)",
       },
       size: {
-        medium: "h-button-medium px-button-x-medium py-button-y-medium text-button-medium",
-        small: "h-button-small px-button-x-small py-button-y-small text-button-small",
+        medium: "h-(--size-icon-large) px-300",
+        small: "h-(--size-icon-medium) px-200",
       },
     },
     defaultVariants: {

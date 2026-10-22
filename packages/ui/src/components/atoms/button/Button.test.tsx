@@ -26,21 +26,20 @@ test("neutral small uses those classes", () => {
     </Button>,
   );
   const className = screen.getByRole("button", { name: "Add" }).className;
-  expect(className).toContain("bg-button-neutral");
-  expect(className).toContain("border-button-neutral-border");
-  expect(className).toContain("h-button-small");
-  expect(className).toContain("px-button-x-small");
-  expect(className).toContain("py-button-y-small");
-  expect(className).toContain("text-button-small");
-  expect(className).toContain("border-button");
-  expect(className).toContain("disabled:bg-button-disabled");
+  expect(className).toContain("bg-(--color-bg-neutral-tertiary)");
+  expect(className).toContain("border-(--color-border-neutral-secondary)");
+  expect(className).toContain("h-(--size-icon-medium)");
+  expect(className).toContain("px-200");
+  expect(className).toContain("text-03");
+  expect(className).toContain("border");
+  expect(className).toContain("disabled:bg-(--color-bg-disabled)");
 });
 
 test("subtle uses that class", () => {
   render(<Button variant="subtle">Add</Button>);
   const className = screen.getByRole("button", { name: "Add" }).className;
-  expect(className).toContain("bg-button-subtle");
-  expect(className).toContain("hover:border-button-subtle-hover-border");
+  expect(className).toContain("bg-transparent");
+  expect(className).toContain("hover:border-(--color-border-default)");
 });
 
 test("exposes displayName", () => {

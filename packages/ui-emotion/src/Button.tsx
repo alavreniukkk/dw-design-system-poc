@@ -15,11 +15,12 @@ const base = css`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--button-radius);
-  border-width: var(--button-border-width);
+  border-radius: var(--radius-200);
+  border-width: var(--border-width-default);
   border-style: solid;
-  font-family: var(--button-font);
-  font-weight: 400;
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--font-size-03);
   line-height: 1;
   white-space: nowrap;
   &:hover {
@@ -28,56 +29,50 @@ const base = css`
   &:disabled,
   &:disabled:hover {
     cursor: not-allowed;
-    background-color: var(--button-disabled-bg);
-    color: var(--button-disabled-fg);
-    border-color: var(--button-disabled-border);
+    background-color: var(--color-bg-disabled);
+    color: var(--color-fg-disabled-on);
+    border-color: var(--color-border-disabled);
   }
 `;
 
 const variants = {
   primary: css`
-    background-color: var(--button-primary-bg);
-    color: var(--button-primary-fg);
-    border-color: var(--button-primary-border);
+    background-color: var(--color-bg-brand);
+    color: var(--color-fg-on-brand);
+    border-color: var(--color-border-brand);
     &:hover {
-      background-color: var(--button-primary-hover-bg);
+      background-color: var(--color-bg-brand-hover);
     }
   `,
   neutral: css`
-    background-color: var(--button-neutral-bg);
-    color: var(--button-neutral-fg);
-    border-color: var(--button-neutral-border);
+    background-color: var(--color-bg-neutral-tertiary);
+    color: var(--color-fg-default);
+    border-color: var(--color-border-neutral-secondary);
     &:hover {
-      background-color: var(--button-neutral-hover-bg);
+      background-color: var(--color-bg-neutral-tertiary-hover);
     }
   `,
   subtle: css`
-    background-color: var(--button-subtle-bg);
-    color: var(--button-subtle-fg);
-    border-color: var(--button-subtle-border);
+    background-color: transparent;
+    color: var(--color-fg-neutral);
+    border-color: transparent;
     &:hover {
-      color: var(--button-subtle-hover-fg);
-      border-color: var(--button-subtle-hover-border);
+      color: var(--color-fg-default);
+      border-color: var(--color-border-default);
     }
   `,
 };
 
 const sizes = {
   medium: css`
-    height: var(--button-height-medium);
-    padding-left: var(--button-pad-x-medium);
-    padding-right: var(--button-pad-x-medium);
-    padding-top: var(--button-pad-y-medium);
-    padding-bottom: var(--button-pad-y-medium);
-    font-size: var(--button-font-size-medium);
+    height: var(--size-icon-large);
+    padding-left: var(--space-300);
+    padding-right: var(--space-300);
   `,
   small: css`
-    height: var(--button-height-small);
-    padding-left: var(--button-pad-x-small);
-    padding-right: var(--button-pad-x-small);
-    padding-top: var(--button-pad-y-small);
-    padding-bottom: var(--button-pad-y-small);
-    font-size: var(--button-font-size-small);
+    height: var(--size-icon-medium);
+    padding-left: var(--space-200);
+    padding-right: var(--space-200);
   `,
 };
 

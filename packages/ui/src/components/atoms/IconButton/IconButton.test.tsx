@@ -30,12 +30,11 @@ test("neutral small uses those classes", () => {
     </IconButton>,
   );
   const button = screen.getByRole("button", { name: "Star" });
-  expect(button.className).toContain("bg-icon-button-neutral");
-  expect(button.className).toContain("border-icon-button-neutral-border");
-  expect(button.className).toContain("h-icon-button-small");
-  expect(button.className).toContain("w-icon-button-small");
-  expect(button.className).toContain("text-icon-button-neutral-fg");
-  expect(button.className).toContain("border-icon-button");
+  expect(button.className).toContain("bg-(--color-bg-default-secondary)");
+  expect(button.className).toContain("border-(--color-border-default)");
+  expect(button.className).toContain("size-(--size-icon-button-small)");
+  expect(button.className).toContain("text-(--color-fg-default)");
+  expect(button.className).toContain("border");
   expect(button.querySelector("svg")?.getAttribute("viewBox")).toBe("0 0 16 16");
   expect(button.querySelector(".sr-only")?.textContent).toBe("Star");
 });
@@ -47,7 +46,7 @@ test("subtle uses that class", () => {
     </IconButton>,
   );
   expect(screen.getByRole("button", { name: "Star" }).className).toContain(
-    "hover:bg-icon-button-subtle-hover",
+    "hover:bg-(--color-bg-default-hover)",
   );
 });
 

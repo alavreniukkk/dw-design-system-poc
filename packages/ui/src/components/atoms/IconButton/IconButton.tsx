@@ -1,25 +1,24 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import type { ButtonHTMLAttributes } from "react";
 import { Icon, type IconName } from "../../../icons";
+import { focusRing } from "../../../styles/focus";
 import { cn } from "../../../utils/cn";
 
 const iconButtonVariants = cva(
-  "relative inline-flex items-center justify-center rounded-icon-button border-icon-button disabled:cursor-not-allowed disabled:border-icon-button-disabled-border disabled:bg-icon-button-disabled disabled:text-icon-button-disabled-fg disabled:hover:border-icon-button-disabled-border disabled:hover:bg-icon-button-disabled disabled:hover:text-icon-button-disabled-fg",
+  `relative inline-flex items-center justify-center rounded-full border border-solid disabled:cursor-not-allowed disabled:border-(--color-border-disabled) disabled:bg-(--color-bg-disabled) disabled:text-(--color-fg-disabled-on) disabled:hover:border-(--color-border-disabled) disabled:hover:bg-(--color-bg-disabled) disabled:hover:text-(--color-fg-disabled-on) ${focusRing}`,
   {
     variants: {
       variant: {
         primary:
-          "border-icon-button-primary-border bg-icon-button-primary text-icon-button-primary-fg hover:bg-icon-button-primary-hover",
+          "border-(--color-border-brand) bg-(--color-bg-brand) text-(--color-fg-on-brand) hover:bg-(--color-bg-brand-hover)",
         neutral:
-          "border-icon-button-neutral-border bg-icon-button-neutral text-icon-button-neutral-fg hover:bg-icon-button-neutral-hover",
+          "border-(--color-border-default) bg-(--color-bg-default-secondary) text-(--color-fg-default) hover:bg-(--color-bg-default-secondary-hover)",
         subtle:
-          "border-icon-button-subtle-border bg-icon-button-subtle text-icon-button-subtle-fg hover:bg-icon-button-subtle-hover",
+          "border-transparent bg-transparent text-(--color-fg-default) hover:bg-(--color-bg-default-hover)",
       },
       size: {
-        medium:
-          "h-icon-button-medium w-icon-button-medium px-icon-button-x-medium py-icon-button-y-medium",
-        small:
-          "h-icon-button-small w-icon-button-small px-icon-button-x-small py-icon-button-y-small",
+        medium: "size-(--size-icon-button-medium)",
+        small: "size-(--size-icon-button-small)",
       },
     },
     defaultVariants: {
@@ -43,11 +42,7 @@ export const IconButton = ({
   children,
   ...props
 }: IconButtonProps) => (
-  <button
-    type={type}
-    className={cn(iconButtonVariants({ variant, size }), className)}
-    {...props}
-  >
+  <button type={type} className={cn(iconButtonVariants({ variant, size }), className)} {...props}>
     <Icon name={icon} aria-hidden className="max-w-none shrink-0" />
     <span className="sr-only">{children}</span>
   </button>

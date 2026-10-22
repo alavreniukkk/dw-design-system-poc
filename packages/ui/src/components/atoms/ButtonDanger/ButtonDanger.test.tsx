@@ -26,22 +26,21 @@ test("subtle small uses those classes", () => {
     </ButtonDanger>,
   );
   const className = screen.getByRole("button", { name: "Delete" }).className;
-  expect(className).toContain("bg-button-danger-subtle");
-  expect(className).toContain("border-button-danger-subtle-border");
-  expect(className).toContain("h-button-danger-small");
-  expect(className).toContain("px-button-danger-x-small");
-  expect(className).toContain("py-button-danger-y-small");
-  expect(className).toContain("text-button-danger-small");
-  expect(className).toContain("border-button-danger");
-  expect(className).toContain("hover:bg-button-danger-subtle-hover");
-  expect(className).toContain("disabled:bg-button-danger-disabled");
+  expect(className).toContain("bg-transparent");
+  expect(className).toContain("border-transparent");
+  expect(className).toContain("h-(--size-icon-medium)");
+  expect(className).toContain("px-200");
+  expect(className).toContain("text-03");
+  expect(className).toContain("border");
+  expect(className).toContain("hover:bg-(--color-bg-danger-tertiary-hover)");
+  expect(className).toContain("disabled:bg-(--color-bg-disabled)");
 });
 
 test("primary uses that class", () => {
   render(<ButtonDanger variant="primary">Delete</ButtonDanger>);
   const className = screen.getByRole("button", { name: "Delete" }).className;
-  expect(className).toContain("bg-button-danger-primary");
-  expect(className).toContain("hover:border-button-danger-primary-hover-border");
+  expect(className).toContain("bg-(--color-bg-danger)");
+  expect(className).toContain("hover:border-(--color-border-danger)");
 });
 
 test("exposes displayName", () => {

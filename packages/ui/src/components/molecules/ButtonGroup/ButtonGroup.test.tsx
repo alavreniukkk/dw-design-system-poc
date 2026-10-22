@@ -12,7 +12,7 @@ const buttons = (
 test("justify stretches both buttons", () => {
   render(<ButtonGroup>{buttons}</ButtonGroup>);
   const group = screen.getByRole("group");
-  expect(group.className).toContain("gap-button-group");
+  expect(group.className).toContain("gap-400");
   expect(group.className).toContain("[&>*]:flex-1");
   expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();

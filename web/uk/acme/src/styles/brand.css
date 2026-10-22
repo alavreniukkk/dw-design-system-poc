@@ -1,7 +1,0 @@
-[data-brand="acme"] {
-  --color-brand-900: #00163B;
-  --color-brand-950: #00102A;
-  --color-bg-inverse: var(--color-brand-900);
-  --color-border-inverse: var(--color-brand-900);
-  --color-bg-inverse-hover: var(--color-brand-950);
-}
