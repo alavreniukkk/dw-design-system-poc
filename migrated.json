@@ -1,3 +1,3 @@
 {
-  "components": ["Button"]
+  "components": ["Accordion","Avatar","Avatar-block","Avatar-group","Button","Button-danger","Button-group","Card","Checkbox","Icon-button","Input","Notification","Radio","Tag","Tag-toggle","Tag-toggle-group","Textarea","Typography"]
 }

@@ -67,14 +67,15 @@ const readBox = (node) => {
     borderRadius: style.borderRadius,
     columnGap: style.columnGap,
     rowGap: style.rowGap,
-    icon: iconBox
-      ? {
-          x: iconBox.x - box.x,
-          y: iconBox.y - box.y,
-          width: iconBox.width,
-          height: iconBox.height,
-        }
-      : null,
+    icon:
+      iconBox && (iconBox.width > 0 || iconBox.height > 0)
+        ? {
+            x: iconBox.x - box.x,
+            y: iconBox.y - box.y,
+            width: iconBox.width,
+            height: iconBox.height,
+          }
+        : null,
   };
 };
 
